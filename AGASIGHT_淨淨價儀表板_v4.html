@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGASIGHT 亞太區 — 供應商淨淨價分析儀表板</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{--bg:#FAFAF8;--surface:#FFFFFF;--surface2:#F5F4F0;--border:#E5E3DC;--border2:#D0CEC6;--text:#1A1918;--text2:#6B6960;--text3:#9B978C;--red:#A32D2D;--red-bg:#FEF2F2;--red-light:#DC4A4A;--green:#2D7A3A;--green-bg:#F0FDF4;--gold:#96722D;--gold-bg:#FFFBEB;--gold-border:#E5C97A;--blue:#2563EB;--blue-bg:#EFF6FF;--accent:#A32D2D;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC','DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:13px;}
+
+.header{background:#1A1918;color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.header-left{display:flex;align-items:center;gap:14px;}
+.logo{font-size:11px;letter-spacing:3px;font-weight:700;color:var(--gold-border);font-family:'DM Sans',sans-serif;}
+.logo-sub{font-size:10px;letter-spacing:1px;color:#888;margin-top:1px;}
+.header-title{font-size:16px;font-weight:600;}
+.header-right{display:flex;gap:6px;flex-wrap:wrap;}
+.hbtn{border:1px solid #555;background:transparent;color:#ccc;padding:5px 12px;border-radius:6px;font-family:inherit;font-size:12px;cursor:pointer;transition:0.15s;}
+.hbtn:hover{background:#333;color:#fff;}
+.hbtn.gold{color:var(--gold-border);border-color:var(--gold-border);}
+.hbtn.accent{color:#FF8A80;border-color:#FF8A80;}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:0.2s;background:var(--surface);margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--red-bg);}
+.upload-zone .icon{font-size:28px;margin-bottom:6px;}
+.upload-zone .main-text{font-size:14px;font-weight:600;color:var(--text);}
+.upload-zone .sub-text{font-size:12px;color:var(--text3);margin-top:4px;}
+.upload-zone input{display:none;}
+.parsed-banner{background:var(--green-bg);border:1px solid #86EFAC;border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.parsed-banner .check{color:var(--green);font-size:18px;font-weight:700;}
+.parsed-banner .info{font-size:13px;color:var(--green);}
+.parsed-log{font-size:11px;color:var(--text3);max-height:120px;overflow-y:auto;background:var(--surface2);border-radius:6px;padding:8px 10px;margin-top:8px;font-family:'JetBrains Mono',monospace;white-space:pre-wrap;}
+
+.container{max-width:1320px;margin:0 auto;padding:18px;}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+.section-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:0.1s;border-radius:10px 10px 0 0;overflow:hidden;}
+.section-head:hover{background:var(--surface2);}
+.section-head h2{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.badge{background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;font-weight:500;font-family:'DM Sans',sans-serif;}
+.hint{font-size:11px;color:var(--text3);font-weight:400;}
+.section-body{padding:12px 16px;}
+.section-body.collapsed{display:none;}
+.chevron{transition:transform 0.2s;font-size:10px;color:var(--text3);}
+.chevron.down{transform:rotate(90deg);}
+
+.promo-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+.field{display:flex;flex-direction:column;gap:3px;}
+.field label{font-size:11px;font-weight:600;color:var(--text2);}
+.field input,.field select{border:1px solid var(--border);border-radius:5px;padding:6px 9px;font-family:inherit;font-size:13px;background:var(--surface);}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(163,45,45,0.08);}
+
+table.dt{width:100%;border-collapse:collapse;}
+table.dt th{font-size:10px;font-weight:600;color:var(--text2);padding:6px 7px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;}
+table.dt th.r{text-align:right;}
+table.dt td{padding:5px 7px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.dt td.r{text-align:right;}
+table.dt input[type="text"],table.dt input[type="number"]{border:1px solid transparent;border-radius:4px;padding:5px 6px;font-size:12px;width:100%;background:transparent;}
+table.dt input[type="number"]{font-family:'JetBrains Mono',monospace;}
+table.dt input:hover{border-color:var(--border);}
+table.dt input:focus{border-color:var(--accent);outline:none;background:#fff;}
+table.dt tr:hover{background:var(--surface2);}
+.rt{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px;}
+
+.btn{border:1px solid var(--border);background:var(--surface);padding:5px 11px;border-radius:5px;font-family:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;transition:0.15s;}
+.btn:hover{background:var(--surface2);border-color:var(--border2);}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-accent:hover{background:#8B2626;}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+.btn-gold:hover{background:#7A5D24;}
+.btn-row{display:flex;gap:7px;align-items:center;margin-top:7px;}
+.rm{width:22px;height:22px;border-radius:50%;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.rm:hover{background:var(--red-bg);color:var(--red-light);}
+
+/* Benefit rows with multi-select */
+.ben-row{display:grid;grid-template-columns:2.2fr 100px 200px 40px 24px;gap:7px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.ben-row:last-child{border-bottom:none;}
+.ben-hdr{display:grid;grid-template-columns:2.2fr 100px 200px 40px 24px;gap:7px;padding:5px 0;border-bottom:2px solid var(--border);}
+.ben-hdr span{font-size:10px;font-weight:600;color:var(--text2);}
+
+/* Multi-select dropdown */
+.msel{position:relative;width:100%;}
+.msel-trigger{border:1px solid var(--border);border-radius:4px;padding:5px 24px 5px 7px;font-size:11px;cursor:pointer;background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:28px;position:relative;}
+.msel-trigger::after{content:'⌄';position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text3);}
+.msel-drop{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,0.1);z-index:200;max-height:320px;overflow-y:auto;display:none;padding:4px;}
+.msel-drop.open{display:block;}
+.msel-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px;transition:0.1s;}
+.msel-opt:hover{background:var(--surface2);}
+.msel-opt input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+.msel-opt.all-opt{border-bottom:1px solid var(--border);margin-bottom:2px;padding-bottom:7px;font-weight:600;color:var(--accent);}
+.msel-opt.none-opt{border-top:1px solid var(--border);margin-top:2px;padding-top:7px;font-weight:600;color:var(--text3);}
+
+/* ── PARSE REVIEW PANEL ── */
+.review-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+.review-panel{background:var(--surface);border-radius:12px;width:100%;max-width:900px;box-shadow:0 12px 40px rgba(0,0,0,0.2);overflow:hidden;margin:auto;}
+.review-header{background:#1A1918;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.review-header h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.review-warn{background:#FFF3CD;border:1px solid #F59E0B;border-radius:6px;padding:10px 14px;font-size:12px;color:#92400E;margin:12px 16px 0;display:flex;gap:8px;align-items:flex-start;}
+.review-warn .wi{font-size:16px;flex-shrink:0;}
+.review-body{padding:14px 16px 20px;}
+.review-section{margin-bottom:16px;}
+.review-section h4{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.review-section h4 .rc{background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;}
+.review-section h4 .rc.ok{background:var(--green);}
+.review-section h4 .rc.warn{background:var(--gold);}
+table.rvtbl{width:100%;border-collapse:collapse;font-size:12px;}
+table.rvtbl th{font-size:10px;font-weight:600;color:var(--text2);padding:5px 8px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface2);}
+table.rvtbl th.r{text-align:right;}
+table.rvtbl td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:11px;}
+table.rvtbl td.r{text-align:right;font-family:'JetBrains Mono',monospace;}
+table.rvtbl td.warn{color:var(--gold);font-weight:600;}
+table.rvtbl tr:last-child td{border-bottom:none;}
+.review-actions{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface2);}
+.ben-desc-sel{border:1px solid var(--border);border-radius:4px;padding:5px 6px;font-size:12px;width:100%;background:var(--surface);font-family:inherit;}
+.ben-desc-sel:focus{border-color:var(--accent);outline:none;}
+.ben-custom{border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:11px;width:100%;margin-top:3px;font-family:inherit;display:none;}
+.ben-custom:focus{border-color:var(--accent);outline:none;}
+
+.toggle{position:relative;width:32px;height:18px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle .sl{position:absolute;inset:0;background:var(--border2);border-radius:9px;cursor:pointer;transition:0.2s;}
+.toggle .sl::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;left:2px;top:2px;transition:0.2s;}
+.toggle input:checked+.sl{background:var(--green);}
+.toggle input:checked+.sl::before{left:16px;}
+
+.results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface2);border-radius:8px;padding:11px 13px;}
+.stat-card .label{font-size:10px;color:var(--text2);font-weight:600;}
+.stat-card .value{font-size:19px;font-weight:700;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.stat-card .value.green{color:var(--green);}
+.stat-card .value.red{color:var(--accent);}
+.stat-card .value.gold{color:var(--gold);}
+
+table.rtbl{width:100%;border-collapse:collapse;font-size:12px;}
+table.rtbl th{font-size:10px;font-weight:600;color:var(--text2);padding:7px 6px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;}
+table.rtbl th:first-child{text-align:left;}
+table.rtbl td{padding:7px 6px;border-bottom:1px solid var(--border);text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;}
+table.rtbl td:first-child{text-align:left;font-family:'Noto Sans TC','DM Sans',sans-serif;font-size:12px;font-weight:500;}
+table.rtbl tr.total-row{font-weight:700;background:var(--surface2);}
+table.rtbl tr:hover{background:var(--surface2);}
+.pill{display:inline-block;padding:1px 7px;border-radius:7px;font-size:10px;font-weight:600;}
+.pill-green{background:var(--green-bg);color:var(--green);}
+.pill-gold{background:var(--gold-bg);color:var(--gold);}
+.pill-red{background:var(--red-bg);color:var(--red);}
+
+.rebate-box{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.rebate-left{display:flex;align-items:center;gap:10px;}
+.rebate-icon{width:34px;height:34px;background:var(--gold);color:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;}
+
+table.htbl{width:100%;border-collapse:collapse;font-size:11px;}
+table.htbl th{font-size:10px;font-weight:600;color:var(--text2);padding:7px 5px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--surface);}
+table.htbl th:first-child{text-align:left;}
+table.htbl td{padding:6px 5px;border-bottom:1px solid var(--border);text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;}
+table.htbl td:first-child{text-align:left;font-family:'Noto Sans TC','DM Sans',sans-serif;font-size:12px;font-weight:500;}
+table.htbl tr:hover{background:var(--surface2);}
+.trend-up{color:var(--red-light);}
+.trend-down{color:var(--green);}
+.del-hist{font-size:10px;color:var(--text3);cursor:pointer;border:none;background:none;padding:2px 5px;border-radius:3px;}
+.del-hist:hover{background:var(--red-bg);color:var(--red-light);}
+.empty-state{padding:18px;text-align:center;color:var(--text3);font-size:13px;}
+
+.chart-container{margin-top:10px;position:relative;height:240px;overflow:hidden;}
+.chart-container canvas{width:100%!important;height:100%!important;}
+
+.footer{text-align:center;padding:18px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);margin-top:14px;}
+.footer strong{color:var(--accent);letter-spacing:1px;}
+
+/* AI Settings bar */
+.ai-bar{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.ai-bar-head{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.ai-bar-head:hover{background:var(--surface2);}
+.ai-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;font-family:'DM Sans',sans-serif;}
+.ai-badge.on{background:#DCFCE7;color:#166534;}
+.ai-badge.off{background:var(--surface2);color:var(--text3);}
+.ai-badge.loading{background:#FEF9C3;color:#854D0E;}
+.ai-body{padding:10px 14px 12px;border-top:1px solid var(--border);display:none;}
+.ai-body.open{display:block;}
+.ai-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.ai-row:last-child{margin-bottom:0;}
+.ai-key-input{flex:1;min-width:260px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--border);border-radius:5px;padding:5px 9px;background:var(--surface2);}
+.ai-key-input:focus{outline:none;border-color:var(--blue);}
+.ai-hint{font-size:11px;color:var(--text3);}
+.ai-status{font-size:11px;padding:4px 10px;border-radius:5px;font-family:'JetBrains Mono',monospace;}
+.ai-status.ok{background:var(--green-bg);color:var(--green);}
+.ai-status.err{background:var(--red-bg);color:var(--red-light);}
+.ai-progress{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--gold);display:none;align-items:center;gap:8px;}
+.ai-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--gold-border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media print{.btn,.btn-row,.rm,.header-right,.no-print,.upload-zone{display:none!important;}.section-body.collapsed{display:block!important;}body{background:#fff;}.section{break-inside:avoid;}}
+@media(max-width:768px){.promo-grid{grid-template-columns:1fr 1fr;}.results-grid{grid-template-columns:1fr 1fr;}.ben-row,.ben-hdr{grid-template-columns:1.5fr 80px 140px 36px 24px;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div><div class="logo">AGASIGHT 亞太區</div><div class="logo-sub">THE LEADER'S VISION</div></div>
+    <div style="width:1px;height:28px;background:#444;"></div>
+    <div class="header-title">供應商淨淨價分析儀表板</div>
+  </div>
+  <div class="header-right no-print">
+    <button class="hbtn gold" onclick="loadDemo()">載入 CNY 2026 示範</button>
+    <button class="hbtn" onclick="clearAll()">清除全部</button>
+    <button class="hbtn" onclick="exportXLSX()">匯出 Excel</button>
+    <button class="hbtn" onclick="window.print()">列印 / PDF</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- AI SETTINGS -->
+  <div class="ai-bar no-print">
+    <div class="ai-bar-head" onclick="toggleAiBar()">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;">🤖</span>
+        <span style="font-size:13px;font-weight:600;">AI 智能解析設定</span>
+        <span class="ai-badge off" id="ai-badge">未啟用（使用正則解析）</span>
+      </div>
+      <span style="font-size:10px;color:var(--text3);">▼</span>
+    </div>
+    <div class="ai-body" id="ai-body">
+      <div class="ai-row">
+        <label style="font-size:12px;color:var(--text2);">供應商：</label>
+        <select id="ai-provider" onchange="onProviderChange()" style="font-size:12px;border:1px solid var(--border);border-radius:5px;padding:4px 8px;background:var(--surface2);">
+          <option value="gemini">Google Gemini</option>
+          <option value="claude">Anthropic Claude</option>
+        </select>
+        <label style="font-size:12px;color:var(--text2);">模型：</label>
+        <select id="ai-model" onchange="saveAiKey()" style="font-size:12px;border:1px solid var(--border);border-radius:5px;padding:4px 8px;background:var(--surface2);"></select>
+      </div>
+      <div class="ai-row">
+        <input type="password" class="ai-key-input" id="ai-key-input" placeholder="輸入 API Key" oninput="saveAiKey()">
+        <button class="btn" onclick="testAiKey()" style="font-size:12px;padding:5px 12px;">測試連線</button>
+        <button class="btn" onclick="listGeminiModels()" style="font-size:12px;padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text2);">自動偵測可用模型</button>
+        <button class="btn" onclick="clearAiKey()" style="font-size:12px;padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text2);">清除</button>
+        <span id="ai-test-status" class="ai-status" style="display:none;"></span>
+      </div>
+      <div class="ai-hint" id="ai-key-hint"></div>
+    </div>
+  </div>
+  <div class="ai-progress" id="ai-progress">
+    <div class="ai-spinner"></div>
+    <span id="ai-progress-text">正在使用 AI 解析文件...</span>
+  </div>
+
+  <!-- FILE UPLOAD -->
+  <div class="upload-zone no-print" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">📂</div>
+    <div class="main-text">拖放供應商檔案至此，或點擊上傳</div>
+    <div class="sub-text">支援 .eml 電郵、.docx Word、.xlsx / .xls Excel、.txt 純文字 — 適用所有供應商格式</div>
+    <input type="file" id="file-input" accept=".eml,.txt,.xlsx,.xls,.docx,.doc" multiple>
+  </div>
+  <div class="no-print" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:11px;font-weight:600;color:var(--text2);">或直接貼上電郵 / 文字內容：</span>
+      <span style="font-size:11px;color:var(--text3);">（貼上後點擊「解析」）</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-start;">
+      <textarea id="paste-input" placeholder="在此貼上電郵內文、Gemini 回覆、或任何供應商報價文字..." style="flex:1;min-height:120px;max-height:300px;border:2px dashed var(--border2);border-radius:10px;padding:12px;font-family:inherit;font-size:13px;resize:vertical;background:var(--surface);color:var(--text);transition:0.2s;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+      <button class="btn btn-accent" onclick="parsePastedText()" style="white-space:nowrap;padding:10px 18px;align-self:flex-end;">解析文字</button>
+    </div>
+  </div>
+  <div id="parsed-area"></div>
+</div><!-- end container — review overlay is outside so it covers full screen -->
+
+<!-- PARSE REVIEW OVERLAY -->
+<div class="review-overlay" id="review-overlay" style="display:none;">
+  <div class="review-panel">
+    <div class="review-header">
+      <h3>⚠ 解析結果審閱 — 請核對後再套用</h3>
+      <span id="review-fname" style="font-size:11px;color:#aaa;"></span>
+    </div>
+    <div class="review-warn" id="review-warn">
+      <span class="wi">⚠️</span>
+      <span id="review-warn-text">以下資料由系統自動解析，<strong>可能存在錯誤</strong>。請與原始電郵逐項核對後，再點擊「確認並套用」。如有誤項，請直接在表格修改。</span>
+    </div>
+    <div class="review-body" id="review-body"></div>
+    <div class="review-actions">
+      <button class="btn" onclick="exportReviewXLSX()">📥 匯出審閱 Excel</button>
+      <button class="btn" onclick="closeReview()">✕ 取消</button>
+      <button class="btn btn-accent" onclick="confirmApply()">✓ 確認並套用</button>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="main-container">
+
+  <!-- PROMO INFO -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 推廣詳情</h2></div>
+    <div class="section-body">
+      <div class="promo-grid">
+        <div class="field"><label>供應商</label><input type="text" id="p-supplier" placeholder="例：MHD Hong Kong"></div>
+        <div class="field"><label>推廣名稱</label><input type="text" id="p-name" placeholder="例：Diageo CNY 2026"></div>
+        <div class="field"><label>推廣期</label><input type="text" id="p-period" placeholder="例：2025年12月 – 2026年3月"></div>
+        <div class="field"><label>目標金額 (HKD)</label><input type="number" id="p-target" placeholder="例：900000"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SKU TABLE -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 訂購 SKU <span class="badge" id="sku-count">0</span></h2></div>
+    <div class="section-body">
+      <div style="overflow-x:auto;">
+        <table class="dt"><thead><tr>
+          <th style="width:24px"></th><th style="min-width:200px">產品名稱</th><th class="r" style="width:100px">發票價 $/瓶</th><th class="r" style="width:80px">數量</th><th class="r" style="width:100px">總額</th>
+        </tr></thead><tbody id="sku-body"></tbody></table>
+      </div>
+      <div class="btn-row no-print"><button class="btn" onclick="addSku()">+ 新增 SKU</button></div>
+    </div>
+  </div>
+
+  <!-- FOC -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 免費贈品 (FOC) <span class="badge" id="foc-count">0</span></h2><span class="hint">以發票價計算，歸屬至該 SKU</span></div>
+    <div class="section-body">
+      <div style="overflow-x:auto;">
+        <table class="dt"><thead><tr>
+          <th style="width:24px"></th><th style="min-width:200px">產品名稱</th><th class="r" style="width:80px">FOC 數量</th><th class="r" style="width:100px">發票價 $/瓶</th><th class="r" style="width:100px">FOC 價值</th><th style="width:90px">類型</th>
+        </tr></thead><tbody id="foc-body"></tbody></table>
+      </div>
+      <div class="btn-row no-print"><button class="btn" onclick="addFoc()">+ 新增 FOC</button></div>
+    </div>
+  </div>
+
+  <!-- STAFF INCENTIVE -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 員工激勵 <span class="badge" id="inc-count">0</span></h2><span class="hint">需為員工 → 歸公司所有</span></div>
+    <div class="section-body">
+      <div style="overflow-x:auto;">
+        <table class="dt"><thead><tr>
+          <th style="width:24px"></th><th style="min-width:200px">產品名稱</th><th class="r" style="width:90px">激勵 $/瓶</th><th class="r" style="width:80px">上限 (瓶)</th><th class="r" style="width:100px">上限 (HKD)</th><th class="r" style="width:100px">最高激勵</th>
+        </tr></thead><tbody id="inc-body"></tbody></table>
+      </div>
+      <div class="btn-row no-print"><button class="btn" onclick="addInc()">+ 新增激勵</button></div>
+    </div>
+  </div>
+
+  <!-- TRADE OFFER -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 買贈優惠 <span class="badge" id="trd-count">0</span></h2><span class="hint">例：買11送1</span></div>
+    <div class="section-body">
+      <div style="overflow-x:auto;">
+        <table class="dt"><thead><tr>
+          <th style="width:24px"></th><th style="min-width:180px">產品名稱</th><th class="r" style="width:90px">標價 $/瓶</th><th class="r" style="width:65px">購買</th><th class="r" style="width:65px">免費</th><th class="r" style="width:90px">淨價 $/瓶</th><th class="r" style="width:75px">折扣 %</th>
+        </tr></thead><tbody id="trd-body"></tbody></table>
+      </div>
+      <div class="btn-row no-print"><button class="btn" onclick="addTrd()">+ 新增買贈</button></div>
+    </div>
+  </div>
+
+  <!-- PACKAGE BENEFITS -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 套餐額外利益 <span class="badge" id="ben-count">0</span></h2><span class="hint">可歸屬至多個 SKU — 以開關控制是否計入</span></div>
+    <div class="section-body">
+      <div class="ben-hdr"><span>利益類型</span><span>價值 (HKD)</span><span>歸屬至 SKU</span><span style="text-align:center;">計入</span><span></span></div>
+      <div id="ben-list"></div>
+      <div class="btn-row no-print"><button class="btn" onclick="addBen()">+ 新增利益</button></div>
+    </div>
+  </div>
+
+  <!-- CALCULATE -->
+  <div style="text-align:center;margin:18px 0;" class="no-print">
+    <button class="btn btn-accent" onclick="calculate()" style="padding:10px 40px;font-size:14px;font-weight:600;border-radius:8px;">計算淨淨價</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="section" id="res-sec" style="display:none;">
+    <div class="section-head" style="background:var(--surface2);cursor:default;">
+      <h2 style="color:var(--accent);">✦ 淨淨價分析結果</h2>
+      <span id="res-label" class="hint"></span>
+    </div>
+    <div class="section-body">
+      <div class="results-grid" id="sum-cards"></div>
+      <div style="overflow-x:auto;"><table class="rtbl"><thead><tr>
+        <th style="text-align:left;min-width:150px;">產品</th><th>發票價/瓶</th><th>數量</th><th>FOC</th><th>激勵</th><th>利益歸屬</th><th>總折扣/瓶</th><th>折扣 %</th><th>淨淨價/瓶</th>
+      </tr></thead><tbody id="res-body"></tbody></table></div>
+      <div class="btn-row no-print" style="margin-top:10px;justify-content:flex-end;">
+        <button class="btn btn-gold" onclick="saveHist()">💾 儲存至歷史紀錄</button>
+      </div>
+      <div id="ben-log" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- TRADE RESULTS -->
+  <div class="section" id="trd-res" style="display:none;">
+    <div class="section-head" style="background:var(--surface2);cursor:default;">
+      <h2 style="color:var(--accent);">✦ 買贈優惠淨價</h2>
+    </div>
+    <div class="section-body">
+      <div style="overflow-x:auto;"><table class="rtbl"><thead><tr>
+        <th style="text-align:left;">產品</th><th>標價</th><th>購買</th><th>免費</th><th>淨價/瓶</th><th>折扣 %</th>
+      </tr></thead><tbody id="trd-res-body"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ANNUAL REBATE -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 年度回佣（獨立追蹤）</h2></div>
+    <div class="section-body">
+      <div class="rebate-box">
+        <div class="rebate-left">
+          <div class="rebate-icon">%</div>
+          <div><div style="font-weight:600;font-size:13px;color:var(--gold);">年度業績回佣</div><div style="font-size:11px;color:var(--text2);">不計入個別推廣淨淨價</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div class="field"><label>回佣 %</label><input type="number" id="reb-pct" step="0.1" style="width:65px;" oninput="cReb()"></div>
+          <div class="field"><label>年度目標</label><input type="number" id="reb-tgt" style="width:120px;"></div>
+          <div class="field"><label>實際達成</label><input type="number" id="reb-ach" style="width:120px;" oninput="cReb()"></div>
+          <div class="field"><label>回佣金額</label><div id="reb-val" class="mono" style="padding:6px 0;font-weight:600;color:var(--gold);">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section">
+    <div class="section-head" onclick="tog(this)"><h2><span class="chevron down">▶</span> 📊 歷史淨淨價追蹤</h2><span class="hint" id="hist-ct">0 筆紀錄</span></div>
+    <div class="section-body" id="hist-body"><div id="hist-content"></div><div id="hist-chart"></div></div>
+  </div>
+
+</div>
+
+<div class="footer"><strong>AGASIGHT 亞太區</strong> — The Leader's Vision<br>供應商淨淨價分析儀表板 v4.0 — 專為 Wai Shing Wines &amp; Spirits 而設</div>
+
+<script>
+let skuN=0,focN=0,incN=0,trdN=0,benN=0,lastRes=null,hChart=null;
+const F=n=>n.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+const FI=n=>n.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0});
+const P=n=>n.toFixed(1)+'%';
+const gv=id=>(document.getElementById(id)||{}).value||'';
+const gn=id=>parseFloat(gv(id))||0;
+function tog(el){el.nextElementSibling.classList.toggle('collapsed');el.querySelector('.chevron').classList.toggle('down');}
+function badge(id,cid){document.getElementById(id).textContent=document.getElementById(cid).children.length;}
+
+// ── AI SETTINGS ──
+const AI_MODELS={
+  gemini:[
+    {id:'gemini-2.5-pro-exp-03-25',label:'Gemini 2.5 Pro Exp 🎯 最準確'},
+    {id:'gemini-2.5-flash-preview-04-17',label:'Gemini 2.5 Flash Preview ⚡ 快速'},
+    {id:'gemini-2.5-pro-preview-05-06',label:'Gemini 2.5 Pro Preview 🎯 最強'},
+    {id:'gemini-2.0-flash-lite',label:'Gemini 2.0 Flash Lite 💰 省費'},
+  ],
+  claude:[
+    {id:'claude-haiku-4-5-20251001',label:'Claude Haiku 4.5 ⚡ 快速省費'},
+    {id:'claude-sonnet-4-6',label:'Claude Sonnet 4.6 🎯 最準確'},
+  ]
+};
+const AI_HINTS={
+  gemini:'Google AI API Key（AIza...）— 可於 aistudio.google.com 免費獲取。每次解析費用極低或免費。',
+  claude:'Anthropic API Key（sk-ant-...）— 可於 console.anthropic.com 獲取。每次解析費用約 HK$0.01–0.05。'
+};
+function toggleAiBar(){const b=document.getElementById('ai-body');b.classList.toggle('open');}
+function getAiProvider(){return localStorage.getItem('ag_ai_provider')||'gemini';}
+function getAiModel(){
+  const p=getAiProvider();
+  const saved=localStorage.getItem('ag_ai_model_'+p);
+  return saved||AI_MODELS[p][0].id;
+}
+function onProviderChange(){
+  const p=(document.getElementById('ai-provider')||{}).value||'gemini';
+  localStorage.setItem('ag_ai_provider',p);
+  // Rebuild model dropdown
+  const sel=document.getElementById('ai-model');
+  if(sel){sel.innerHTML='';AI_MODELS[p].forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;sel.appendChild(o);});sel.value=getAiModel();}
+  // Update key placeholder and hint
+  const inp=document.getElementById('ai-key-input');
+  if(inp)inp.placeholder=p==='gemini'?'輸入 Google AI API Key（AIza...）':'輸入 Anthropic API Key（sk-ant-...）';
+  const hint=document.getElementById('ai-key-hint');
+  if(hint)hint.textContent=AI_HINTS[p];
+  // Load saved key for this provider
+  const k=localStorage.getItem('ag_ai_key_'+p)||'';
+  if(inp)inp.value=k;
+  updateAiBadge();
+  const s=document.getElementById('ai-test-status');if(s)s.style.display='none';
+}
+function saveAiKey(){
+  const p=getAiProvider();
+  const k=(document.getElementById('ai-key-input')||{}).value||'';
+  const mdl=(document.getElementById('ai-model')||{}).value||AI_MODELS[p][0].id;
+  if(k)localStorage.setItem('ag_ai_key_'+p,k); else localStorage.removeItem('ag_ai_key_'+p);
+  // ag_ai_key always mirrors current provider's key for backward compat
+  if(k)localStorage.setItem('ag_ai_key',k); else localStorage.removeItem('ag_ai_key');
+  localStorage.setItem('ag_ai_model_'+p,mdl);
+  updateAiBadge();
+}
+function clearAiKey(){
+  const p=getAiProvider();
+  localStorage.removeItem('ag_ai_key_'+p);
+  localStorage.removeItem('ag_ai_key');
+  const inp=document.getElementById('ai-key-input');if(inp)inp.value='';
+  updateAiBadge();
+  const s=document.getElementById('ai-test-status');if(s)s.style.display='none';
+}
+function updateAiBadge(){
+  const b=document.getElementById('ai-badge');if(!b)return;
+  const p=getAiProvider();
+  const k=localStorage.getItem('ag_ai_key_'+p)||'';
+  const label=p==='gemini'?'Gemini':'Claude';
+  b.textContent=k?`✓ ${label} AI 已啟用`:'未啟用（使用正則解析）';
+  b.className='ai-badge '+(k?'on':'off');
+}
+function getAiKey(){
+  const p=getAiProvider();
+  return localStorage.getItem('ag_ai_key_'+p)||'';
+}
+async function testAiKey(){
+  const k=getAiKey();const p=getAiProvider();const s=document.getElementById('ai-test-status');
+  if(!k){s.textContent='請先輸入 API Key';s.className='ai-status err';s.style.display='';return;}
+  s.textContent='測試中...';s.className='ai-status';s.style.display='';
+  try{
+    if(p==='gemini'){
+      const mdl=getAiModel();
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1/models/${mdl}:generateContent?key=${k}`,{
+        method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:'hi'}]}],generationConfig:{maxOutputTokens:5}})
+      });
+      if(r.ok){s.textContent='✓ 連線成功';s.className='ai-status ok';}
+      else{const j=await r.json();s.textContent='✗ '+(j.error?.message||r.status);s.className='ai-status err';}
+    }else{
+      const r=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'x-api-key':k,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:getAiModel(),max_tokens:10,messages:[{role:'user',content:'hi'}]})
+      });
+      if(r.ok){s.textContent='✓ 連線成功';s.className='ai-status ok';}
+      else{const j=await r.json();s.textContent='✗ '+(j.error?.message||r.status);s.className='ai-status err';}
+    }
+  }catch(e){s.textContent='✗ 網絡錯誤: '+e.message;s.className='ai-status err';}
+}
+
+async function listGeminiModels(){
+  const k=getAiKey();
+  const s=document.getElementById('ai-test-status');
+  if(!k){s.textContent='請先輸入 API Key';s.className='ai-status err';s.style.display='';return;}
+  s.textContent='正在查詢可用模型...';s.className='ai-status';s.style.display='';
+  try{
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${k}&pageSize=100`);
+    if(!r.ok){const j=await r.json();s.textContent='✗ '+(j.error?.message||r.status);s.className='ai-status err';return;}
+    const j=await r.json();
+    const models=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'));
+    if(!models.length){s.textContent='✗ 此 Key 沒有可用模型';s.className='ai-status err';return;}
+    // Rebuild the Gemini model list from actual API response
+    AI_MODELS.gemini=models.map(m=>{
+      const id=m.name.replace('models/','');
+      const label=m.displayName||id;
+      return{id,label};
+    });
+    // Prefer stable 2.0-flash models; avoid preview/exp unless nothing else available
+    const preferred=['gemini-2.5-flash-preview-04-17','gemini-2.5-flash','gemini-2.5-pro','gemini-2.0-flash-lite','gemini-2.0-flash'];
+    const stable=AI_MODELS.gemini.filter(m=>!/preview|exp/i.test(m.id));
+    const pool=stable.length?stable:AI_MODELS.gemini;
+    let best=pool.find(m=>preferred.includes(m.id))||pool[0];
+    // Rebuild dropdown
+    const mSel=document.getElementById('ai-model');
+    if(mSel){
+      mSel.innerHTML='';
+      AI_MODELS.gemini.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;mSel.appendChild(o);});
+      mSel.value=best.id;
+    }
+    localStorage.setItem('ag_ai_model_gemini',best.id);
+    s.textContent=`✓ 找到 ${models.length} 個模型，已選用: ${best.id}`;
+    s.className='ai-status ok';
+  }catch(e){s.textContent='✗ 網絡錯誤: '+e.message;s.className='ai-status err';}
+}
+
+const LLM_PROMPT=`You are a data extraction assistant for a wine & spirits distributor in Hong Kong.
+Extract ALL deal terms from the supplier promotion email/document below.
+Return ONLY valid JSON — no markdown fences, no explanation — starting with { and ending with }.
+
+JSON structure:
+{
+  "supplier": "string or null",
+  "period": "string or null",
+  "target": "numeric string or null (combined total purchase target in HKD)",
+  "annualRebatePct": number_or_null,
+  "skus": [{"name":"string","price":number,"qty":number}],
+  "focs": [{"name":"string","qty":number,"type":"package|sku"}],
+  "incentives": [{"name":"string","perBtl":number,"capBtl":number,"capHkd":number}],
+  "benefits": [{"desc":"string","val":number,"note":"string or null"}],
+  "trades": [{"name":"string","lp":number,"buy":number,"free":number}]
+}
+
+Extraction rules — read carefully:
+
+COMBINED PACKAGES: Many emails cover multiple suppliers or brands in one document (e.g. "Hennessy + Diageo CNY Package"). Extract ALL items from ALL sections into the same flat arrays. Do not skip any section.
+
+skus: Every purchasable product line with its invoice/net price and ordered quantity. qty=0 if not stated. Include ALL rows from every price table across all supplier sections.
+
+focs: Every free product / free bottle / GWP item from ALL sections. Capture from ANY format:
+  - "VSOP 5cl: 620 bottles" or "Singleton 12YO: 36" or "JW Blue 20cl: 120 bottles"
+  - Bullet/numbered lists under "FOC", "Free of Charge", "Free Bottles", "GWP" headings
+  - Include the exact product name and quantity. Never skip FOC items from any brand section.
+  - type field rules:
+    * "sku" — FOC is tied to a specific SKU purchase, presented as "11+1", "buy X get Y", "X+Y" format (e.g. "Exclusive 11+1 Offer on Talisker 10YO" → add Talisker 10YO with qty=1 per 11 purchased, type="sku"). For each SKU in an X+Y deal, add a separate FOC row with qty = (ordered_qty / X) * Y, type="sku".
+    * "package" — FOC is a general basket given upon completing the overall package target, not tied to any one SKU (e.g. "Singleton 12YO: 36 bottles" as part of overall package completion). Use type="package" for these.
+
+incentives: ALL staff/sales incentives paid per bottle sold, from every brand section.
+  - "VSOP 70cl: $40/btl (capped at 4,440 bottles / $133,200)" → name="VSOP 70cl", perBtl=40, capBtl=4440, capHkd=133200
+  - "JW Blue Label 70cl: $100/btl (capped at 360 bottles / $36,000)" → name="JW Blue Label 70cl", perBtl=100, capBtl=360, capHkd=36000
+  - Extract EVERY incentive line — do not stop after the first brand's section.
+
+benefits: Capture ALL of the following as separate entries from ALL sections:
+  - Display fees: "Hennessy: $22,000 display support for 5 outlets (Stackers)" → desc="Hennessy Display (Stackers, 5 outlets)", val=22000
+  - Travel vouchers: "Travel Voucher valued at $100,000" → desc="Travel Voucher", val=100000
+  - Package rebates / annual rebates / cash rebates
+  - Consumer dinners — val=0 if no dollar amount stated, note the pax count
+  - Market support / trade marketing funds
+  - Any other monetary or non-monetary support
+
+annualRebatePct: If an annual rebate percentage is stated (e.g. "1% rebate based on 2025 achievement"), capture the number (e.g. 1).
+
+target: The total combined minimum purchase target. If separate targets per brand, sum them.
+
+trades: Buy X get Y free deals from a trade offer table.
+
+IMPORTANT:
+- This may be a COMBINED multi-brand/multi-supplier email. Process EVERY section completely.
+- Do NOT stop extraction after the first supplier section.
+- Do NOT fabricate or guess values not in the text.
+- Numbered items (1. 2. 3.) and sub-bullets (o, -, •) are all valid data sources.
+- Consumer Dinner with no dollar amount: val=0, note describing it.`;
+
+async function parseWithLLM(text, fname){
+  const key=getAiKey();
+  const provider=getAiProvider();
+  const model=getAiModel();
+  const prompt=`${LLM_PROMPT}\n\n--- DOCUMENT: ${fname} ---\n${text.substring(0,40000)}`;
+  let raw;
+  if(provider==='gemini'){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`,{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:65536}})
+    });
+    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||`HTTP ${r.status}`);}
+    const resp=await r.json();
+    raw=(resp.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+  }else{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model,max_tokens:16000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||`HTTP ${r.status}`);}
+    const resp=await r.json();
+    raw=(resp.content?.[0]?.text||'').trim();
+  }
+  const providerLabel=provider==='gemini'?'Gemini':'Claude';
+  // Strip markdown code fences if model wrapped JSON
+  let jsonStr=raw.replace(/^```(?:json)?\n?/,'').replace(/\n?```$/,'').trim();
+  // Attempt JSON repair if truncated: close any open arrays/objects
+  let d;
+  try{d=JSON.parse(jsonStr);}
+  catch(e){
+    // Try to recover truncated JSON by closing open structures
+    let fixed=jsonStr;
+    // Count unclosed brackets/braces
+    let opens=0;
+    for(const ch of fixed){if(ch==='{'||ch==='[')opens++;else if(ch==='}'||ch===']')opens--;}
+    // Remove trailing incomplete token (last comma or partial string)
+    fixed=fixed.replace(/,\s*$/,'').replace(/,\s*[\[{][^}\]]*$/,'');
+    // Close any open string
+    const lastQ=fixed.lastIndexOf('"');
+    const secondLastQ=fixed.lastIndexOf('"',lastQ-1);
+    if(lastQ>secondLastQ&&(fixed.match(/"/g)||[]).length%2!==0)fixed+='"';
+    // Close open structures
+    for(let i=0;i<20&&opens>0;i++){
+      const lastOpen=Math.max(fixed.lastIndexOf('['),fixed.lastIndexOf('{'));
+      fixed+=(fixed[lastOpen]==='['?']':'}');opens--;
+    }
+    try{d=JSON.parse(fixed);}
+    catch(e2){throw new Error('AI returned malformed JSON (truncated response). Try a larger model like Gemini 2.5 Pro.');}
+  }
+  // Map to internal format
+  const result={
+    skus:(d.skus||[]).map(s=>({name:String(s.name||''),price:Number(s.price)||0,qty:Number(s.qty)||0})),
+    focs:(d.focs||[]).map(f=>({name:String(f.name||''),qty:Number(f.qty)||0,price:0,type:(f.type==='sku'?'sku':'package')})),
+    incentives:(d.incentives||[]).map(i=>({name:String(i.name||''),perBtl:Number(i.perBtl)||0,capBtl:Number(i.capBtl)||0,capHkd:Number(i.capHkd)||0})),
+    trades:(d.trades||[]).map(t=>({name:String(t.name||''),lp:Number(t.lp)||0,buy:Number(t.buy)||0,free:Number(t.free)||0})),
+    benefits:(d.benefits||[]).map(b=>({desc:String(b.desc||''),val:Number(b.val)||0,customDesc:b.note||null,on:true})),
+    promo:{
+      supplier:d.supplier||'',
+      period:d.period||'',
+      target:d.target||'',
+      annualRebatePct:d.annualRebatePct||null,
+      name:fname.replace(/\.[a-z]+$/i,'').substring(0,60)
+    },
+    log:`== ${fname} ==\n  [${providerLabel} AI 解析] ${(d.skus||[]).length} SKU, ${(d.focs||[]).length} FOC, ${(d.incentives||[]).length} 激勵, ${(d.benefits||[]).length} 利益`
+  };
+  // Match FOC prices to SKUs
+  result.focs.forEach(f=>{
+    const kws=f.name.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+    // Require ALL keywords to match to avoid wrong SKU (e.g. "Singleton 13YO" must not match "Singleton 12YO")
+    const match=result.skus.find(s=>kws.every(k=>s.name.toLowerCase().includes(k)))||result.skus.find(s=>kws.some(k=>s.name.toLowerCase().includes(k)));
+    if(match)f.price=match.price;
+  });
+  return result;
+}
+
+// ── FILE UPLOAD & PARSING ──
+const uz=document.getElementById('upload-zone');
+const fi=document.getElementById('file-input');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('dragover');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('dragover'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('dragover');handleFiles(e.dataTransfer.files);});
+fi.addEventListener('change',e=>handleFiles(e.target.files));
+
+// Initialise AI settings from saved state
+(function initAi(){
+  const p=getAiProvider();
+  // Set provider dropdown
+  const pSel=document.getElementById('ai-provider');if(pSel)pSel.value=p;
+  // Build model dropdown for saved provider
+  const mSel=document.getElementById('ai-model');
+  const validIds=AI_MODELS[p].map(m=>m.id);
+  if(mSel){
+    mSel.innerHTML='';
+    AI_MODELS[p].forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;mSel.appendChild(o);});
+    // Validate saved model — reset to default if stale/invalid
+    const saved=localStorage.getItem('ag_ai_model_'+p)||'';
+    if(saved&&validIds.includes(saved)){mSel.value=saved;}
+    else{mSel.value=validIds[0];localStorage.setItem('ag_ai_model_'+p,validIds[0]);}
+  }
+  // Restore key
+  const k=localStorage.getItem('ag_ai_key_'+p)||'';
+  const inp=document.getElementById('ai-key-input');
+  if(inp){inp.value=k;inp.placeholder=p==='gemini'?'輸入 Google AI API Key（AIza...）':'輸入 Anthropic API Key（sk-ant-...）';}
+  // Hint text
+  const hint=document.getElementById('ai-key-hint');if(hint)hint.textContent=AI_HINTS[p];
+  updateAiBadge();
+})();
+
+let _pendingParsed=[];
+
+async function _extractText(file){
+  return new Promise((resolve,reject)=>{
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='xlsx'||ext==='xls'){
+      const r=new FileReader();
+      r.onload=e=>{
+        try{
+          const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+          // Convert all sheets to plain text for LLM
+          let txt='';
+          wb.SheetNames.forEach(sn=>{
+            const rows=XLSX.utils.sheet_to_json(wb.sheets?wb.sheets[sn]:XLSX.utils.book_get_sheet(wb,sn)||wb.Sheets[sn],{header:1,defval:''});
+            txt+=`[Sheet: ${sn}]\n`;
+            rows.forEach(row=>{ txt+=row.map(c=>(c===null||c===undefined)?'':String(c)).join('\t')+'\n'; });
+          });
+          resolve({text:txt,wb});
+        }catch(e){reject(e);}
+      };
+      r.readAsArrayBuffer(file);
+    }else if(ext==='docx'||ext==='doc'){
+      const r=new FileReader();
+      r.onload=e=>{
+        mammoth.extractRawText({arrayBuffer:e.target.result})
+          .then(res=>resolve({text:res.value}))
+          .catch(reject);
+      };
+      r.readAsArrayBuffer(file);
+    }else{
+      const r=new FileReader();
+      r.onload=e=>resolve({text:e.target.result});
+      r.readAsText(file);
+    }
+  });
+}
+
+async function parsePastedText(){
+  const ta=document.getElementById('paste-input');
+  const text=(ta.value||'').trim();
+  if(!text){ta.style.borderColor='var(--red-light)';setTimeout(()=>ta.style.borderColor='var(--border2)',1500);return;}
+  const fname='貼上文字_'+new Date().toISOString().slice(0,16).replace('T','_')+'.txt';
+  _pendingParsed=[];
+  const aiKey=getAiKey();
+  const prog=document.getElementById('ai-progress');
+  const progTxt=document.getElementById('ai-progress-text');
+  if(aiKey){
+    if(prog){prog.style.display='flex';} if(progTxt)progTxt.textContent='正在使用 AI 解析貼上文字...';
+    try{_pendingParsed.push(await parseWithLLM(text,fname));}
+    catch(e){_pendingParsed.push(parseEml(text,fname));_pendingParsed[0].log=((_pendingParsed[0].log||'')+'\n  [AI 失敗，改用正則] '+e.message);}
+    if(prog)prog.style.display='none';
+  }else{
+    _pendingParsed.push(parseEml(text,fname));
+  }
+  showReview(fname);
+}
+
+async function handleFiles(files){
+  _pendingParsed=[];
+  const fnames=Array.from(files).map(f=>f.name).join(', ');
+  const aiKey=getAiKey();
+  const prog=document.getElementById('ai-progress');
+  const progTxt=document.getElementById('ai-progress-text');
+
+  if(aiKey){
+    prog.style.display='flex';
+    for(let i=0;i<files.length;i++){
+      const file=files[i];
+      progTxt.textContent=`🤖 AI 解析中 (${i+1}/${files.length}): ${file.name}…`;
+      try{
+        const {text,wb}=await _extractText(file);
+        // For Excel, prefer the structured XLSX parser; use LLM for text formats
+        const ext=file.name.split('.').pop().toLowerCase();
+        if((ext==='xlsx'||ext==='xls')&&wb){
+          // Try LLM on extracted text, fall back to structured XLSX parser
+          try{_pendingParsed.push(await parseWithLLM(text,file.name));}
+          catch(e){_pendingParsed.push(parseXLSX(wb,file.name));log&&console.warn('LLM fallback:',e.message);}
+        }else{
+          _pendingParsed.push(await parseWithLLM(text,file.name));
+        }
+      }catch(e){
+        progTxt.textContent=`⚠ AI 解析失敗，改用正則：${file.name}`;
+        // Tag this parse with the AI error message so review panel can show it
+        const errMsg=e.message||String(e);
+        try{
+          const {text:t2,wb:wb2}=await _extractText(file);
+          const ext2=file.name.split('.').pop().toLowerCase();
+          const fallback=(ext2==='xlsx'||ext2==='xls')&&wb2?parseXLSX(wb2,file.name):parseEml(t2,file.name);
+          fallback._aiError=errMsg;
+          _pendingParsed.push(fallback);
+        }catch(e2){
+          _pendingParsed.push({skus:[],focs:[],incentives:[],trades:[],benefits:[],promo:{},_aiError:errMsg,log:`== ${file.name} ==\n  錯誤: ${e2.message}`});
+        }
+      }
+    }
+    prog.style.display='none';
+  }else{
+    // No AI key — use original regex parsers, one per file in parallel
+    await Promise.all(Array.from(files).map(file=>
+      _extractText(file).then(({text,wb})=>{
+        const ext=file.name.split('.').pop().toLowerCase();
+        _pendingParsed.push((ext==='xlsx'||ext==='xls')&&wb?parseXLSX(wb,file.name):parseEml(text,file.name));
+      }).catch(e=>{
+        _pendingParsed.push({skus:[],focs:[],incentives:[],trades:[],benefits:[],promo:{},log:`== ${file.name} ==\n  錯誤: ${e.message}`});
+      })
+    ));
+  }
+  showReview(fnames);
+}
+
+function showReview(fnames){
+  document.getElementById('review-fname').textContent=fnames;
+  // Update warning to reflect parsing method
+  const usedAi=getAiKey()&&_pendingParsed.some(p=>p.log&&p.log.includes('AI 解析]'));
+  const aiErrors=_pendingParsed.filter(p=>p._aiError).map(p=>p._aiError);
+  const warnTxt=document.getElementById('review-warn-text');
+  if(warnTxt){
+    const provider=getAiProvider()==='gemini'?'Gemini':'Claude';
+    if(aiErrors.length){
+      warnTxt.innerHTML=`⚠ <strong>AI 解析失敗，已改用正則解析</strong>。錯誤：<span style="color:var(--red-light);font-family:monospace;font-size:11px;">${aiErrors[0]}</span><br>結果可能不完整，請仔細核對。`;
+    } else if(usedAi){
+      warnTxt.innerHTML=`以下資料由 <strong>${provider} AI</strong> 智能解析，比正則更準確，但仍可能有誤。請與原始電郵核對後確認。`;
+    } else {
+      warnTxt.innerHTML='以下資料由<strong>正則解析</strong>，<strong>可能存在錯誤</strong>。請與原始電郵逐項核對後，再點擊「確認並套用」。如有誤項，請直接在表格修改。';
+    }
+  }
+  const body=document.getElementById('review-body');
+  // Inline input style reused across all editable cells
+  const iText=`style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;width:100%;font-family:inherit;background:#fff;"`;
+  const iNum=`style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;width:80px;font-family:'JetBrains Mono',monospace;text-align:right;background:#fff;"`;
+  const rmBtn=`<button onclick="this.closest('tr').remove()" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;" title="刪除">×</button>`;
+
+  let html='';
+  _pendingParsed.forEach((p,pi)=>{
+    const src=p.promo.name||'未命名';
+    html+=`<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:visible;">`;
+    html+=`<div style="background:var(--surface2);padding:8px 12px;font-size:12px;font-weight:600;color:var(--text2);">📄 ${src}</div>`;
+
+    // Editable promo info row
+    html+=`<div style="padding:8px 12px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);align-items:center;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">供應商 <input ${iText} data-rv="supplier-${pi}" value="${(p.promo.supplier||'').replace(/"/g,'&quot;')}" style="width:160px;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:inherit;"></div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">推廣名稱 <input ${iText} data-rv="name-${pi}" value="${(p.promo.name||'').replace(/"/g,'&quot;')}" style="width:200px;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:inherit;"></div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">推廣期 <input ${iText} data-rv="period-${pi}" value="${(p.promo.period||'').replace(/"/g,'&quot;')}" style="width:160px;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:inherit;"></div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">目標金額 $ <input type="number" data-rv="target-${pi}" value="${p.promo.target||''}" style="width:100px;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:'JetBrains Mono',monospace;"></div>
+    </div>`;
+
+    html+=`<div style="padding:10px 12px;">`;
+
+    // ── SKU table (editable) ──
+    html+=`<div class="review-section"><h4>訂購 SKU <span class="rc ${p.skus.length?'ok':'warn'}">${p.skus.length}</span> <span style="font-size:10px;font-weight:400;color:var(--text3);">— 可直接修改或刪除</span></h4>`;
+    html+=`<table class="rvtbl" id="rv-sku-${pi}"><thead><tr><th>產品名稱</th><th class="r">單價 (HKD)</th><th class="r">數量</th><th></th></tr></thead><tbody>`;
+    p.skus.forEach(s=>{
+      const qwarn=s.qty===0?'border:1px solid var(--gold-border);background:#fffbeb;':'';
+      html+=`<tr>
+        <td><input ${iText} value="${s.name.replace(/"/g,'&quot;')}" placeholder="產品名稱"></td>
+        <td class="r"><input type="number" ${iNum} value="${s.price}" placeholder="0" step="0.01"></td>
+        <td class="r"><input type="number" ${iNum} value="${s.qty||''}" placeholder="0" style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:'JetBrains Mono',monospace;text-align:right;background:#fff;${qwarn}"></td>
+        <td style="width:24px;">${rmBtn}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    html+=`<button onclick="rvAddRow('rv-sku-${pi}','sku')" style="margin-top:5px;font-size:11px;border:1px dashed var(--border2);background:none;border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">+ 新增行</button>`;
+    if(p.skus.some(s=>s.qty===0))html+=`<div style="font-size:11px;color:var(--gold);margin-top:4px;">⚠ 黃色框 = 數量未讀取，請手動填入。</div>`;
+    html+=`</div>`;
+
+    // ── FOC table (editable) ──
+    html+=`<div class="review-section"><h4>FOC 贈品 <span class="rc ${p.focs.length?'ok':'warn'}">${p.focs.length}</span></h4>`;
+    html+=`<table class="rvtbl" id="rv-foc-${pi}"><thead><tr><th>產品</th><th class="r">數量</th><th class="r">單價 (HKD)</th><th style="width:90px">類型</th><th></th></tr></thead><tbody>`;
+    p.focs.forEach(f=>{
+      const pwarn=f.price===0?'border:1px solid var(--gold-border);background:#fffbeb;':'';
+      const ftype=f.type||'package';
+      html+=`<tr>
+        <td><input ${iText} value="${f.name.replace(/"/g,'&quot;')}" placeholder="產品名稱"></td>
+        <td class="r"><input type="number" ${iNum} value="${f.qty}" placeholder="0"></td>
+        <td class="r"><input type="number" ${iNum} value="${f.price||''}" placeholder="0" step="0.01" style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:'JetBrains Mono',monospace;text-align:right;background:#fff;${pwarn}"></td>
+        <td><select style="font-size:11px;border:1px solid var(--border);border-radius:3px;padding:2px 4px;width:100%;">
+          <option value="package"${ftype==='package'?' selected':''}>均攤</option>
+          <option value="sku"${ftype==='sku'?' selected':''}>專屬 SKU</option>
+        </select></td>
+        <td style="width:24px;">${rmBtn}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    html+=`<button onclick="rvAddRow('rv-foc-${pi}','foc')" style="margin-top:5px;font-size:11px;border:1px dashed var(--border2);background:none;border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">+ 新增行</button></div>`;
+
+    // ── Incentives table (editable) ──
+    html+=`<div class="review-section"><h4>員工激勵 <span class="rc ${p.incentives.length?'ok':'warn'}">${p.incentives.length}</span></h4>`;
+    html+=`<table class="rvtbl" id="rv-inc-${pi}"><thead><tr><th>產品範圍</th><th class="r">$/瓶</th><th class="r">上限(瓶)</th><th class="r">上限($)</th><th></th></tr></thead><tbody>`;
+    p.incentives.forEach(i=>{
+      html+=`<tr>
+        <td><input ${iText} value="${i.name.replace(/"/g,'&quot;')}" placeholder="產品範圍"></td>
+        <td class="r"><input type="number" ${iNum} value="${i.perBtl}" placeholder="0"></td>
+        <td class="r"><input type="number" ${iNum} value="${i.capBtl||''}" placeholder="無上限"></td>
+        <td class="r"><input type="number" ${iNum} value="${i.capHkd||''}" placeholder="無上限"></td>
+        <td style="width:24px;">${rmBtn}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    html+=`<button onclick="rvAddRow('rv-inc-${pi}','inc')" style="margin-top:5px;font-size:11px;border:1px dashed var(--border2);background:none;border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">+ 新增行</button></div>`;
+
+    // ── Benefits table (editable) ──
+    html+=`<div class="review-section"><h4>套餐利益 <span class="rc ${p.benefits.length?'ok':'warn'}">${p.benefits.length}</span></h4>`;
+    html+=`<table class="rvtbl" id="rv-ben-${pi}"><thead><tr><th>類型 / 說明</th><th class="r">金額 (HKD)</th><th>細項備註</th><th></th></tr></thead><tbody>`;
+    p.benefits.forEach(b=>{
+      html+=`<tr>
+        <td><input ${iText} value="${(b.customDesc||b.desc).replace(/"/g,'&quot;')}" placeholder="利益說明"></td>
+        <td class="r"><input type="number" ${iNum} value="${b.val}" placeholder="0"></td>
+        <td><input ${iText} value="${(b.customDesc?b.desc:'').replace(/"/g,'&quot;')}" placeholder="備註（選填）" style="width:100%;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:inherit;color:var(--text3);"></td>
+        <td style="width:24px;">${rmBtn}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+    html+=`<button onclick="rvAddRow('rv-ben-${pi}','ben')" style="margin-top:5px;font-size:11px;border:1px dashed var(--border2);background:none;border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">+ 新增行</button></div>`;
+
+    html+=`</div></div>`;
+  });
+
+  body.innerHTML=html||'<div style="padding:20px;text-align:center;color:var(--text3);">無可審閱資料</div>';
+  document.getElementById('review-overlay').style.display='flex';
+}
+
+// Add blank row to a review table
+function rvAddRow(tblId,type){
+  const tbody=document.querySelector(`#${tblId} tbody`);
+  const iText=`style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;width:100%;font-family:inherit;background:#fff;"`;
+  const iNum=`style="border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;width:80px;font-family:'JetBrains Mono',monospace;text-align:right;background:#fff;"`;
+  const rmBtn=`<button onclick="this.closest('tr').remove()" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;">×</button>`;
+  const tr=document.createElement('tr');
+  if(type==='sku')tr.innerHTML=`<td><input ${iText} placeholder="產品名稱"></td><td class="r"><input type="number" ${iNum} placeholder="0" step="0.01"></td><td class="r"><input type="number" ${iNum} placeholder="0"></td><td>${rmBtn}</td>`;
+  if(type==='foc')tr.innerHTML=`<td><input ${iText} placeholder="產品名稱"></td><td class="r"><input type="number" ${iNum} placeholder="0"></td><td class="r"><input type="number" ${iNum} placeholder="0" step="0.01"></td><td><select style="font-size:11px;border:1px solid var(--border);border-radius:3px;padding:2px 4px;width:100%;"><option value="package">均攤</option><option value="sku">專屬 SKU</option></select></td><td>${rmBtn}</td>`;
+  if(type==='inc')tr.innerHTML=`<td><input ${iText} placeholder="產品範圍"></td><td class="r"><input type="number" ${iNum} placeholder="0"></td><td class="r"><input type="number" ${iNum} placeholder=""></td><td class="r"><input type="number" ${iNum} placeholder=""></td><td>${rmBtn}</td>`;
+  if(type==='ben')tr.innerHTML=`<td><input ${iText} placeholder="利益說明"></td><td class="r"><input type="number" ${iNum} placeholder="0"></td><td><input ${iText} placeholder="備註（選填）" style="color:var(--text3);width:100%;border:1px solid var(--border);border-radius:3px;padding:3px 5px;font-size:11px;font-family:inherit;"></td><td>${rmBtn}</td>`;
+  tbody.appendChild(tr);
+}
+
+// Read corrected values from review DOM and build parsed objects
+function readReviewData(){
+  const results=[];
+  _pendingParsed.forEach((p,pi)=>{
+    const el=id=>document.querySelector(`[data-rv="${id}-${pi}"]`);
+    const corrected={
+      promo:{
+        supplier:(el('supplier')||{}).value||p.promo.supplier||'',
+        name:(el('name')||{}).value||p.promo.name||'',
+        period:(el('period')||{}).value||p.promo.period||'',
+        target:(el('target')||{}).value||p.promo.target||'',
+        annualRebatePct:p.promo.annualRebatePct
+      },
+      skus:[],focs:[],incentives:[],benefits:[],trades:p.trades||[]
+    };
+    // SKUs
+    document.querySelectorAll(`#rv-sku-${pi} tbody tr`).forEach(tr=>{
+      const ins=tr.querySelectorAll('input');
+      const name=(ins[0]||{}).value||'';const price=parseFloat((ins[1]||{}).value)||0;const qty=parseFloat((ins[2]||{}).value)||0;
+      if(name&&price>0)corrected.skus.push({name,price,qty});
+    });
+    // FOC
+    document.querySelectorAll(`#rv-foc-${pi} tbody tr`).forEach(tr=>{
+      const ins=tr.querySelectorAll('input');
+      const name=(ins[0]||{}).value||'';const qty=parseFloat((ins[1]||{}).value)||0;const price=parseFloat((ins[2]||{}).value)||0;
+      const type=(tr.querySelector('select')||{}).value||'package';
+      if(name&&qty>0)corrected.focs.push({name,qty,price,type});
+    });
+    // Incentives
+    document.querySelectorAll(`#rv-inc-${pi} tbody tr`).forEach(tr=>{
+      const ins=tr.querySelectorAll('input');
+      const name=(ins[0]||{}).value||'';const perBtl=parseFloat((ins[1]||{}).value)||0;const capBtl=parseFloat((ins[2]||{}).value)||0;const capHkd=parseFloat((ins[3]||{}).value)||0;
+      if(name&&perBtl>0)corrected.incentives.push({name,perBtl,capBtl,capHkd});
+    });
+    // Benefits
+    document.querySelectorAll(`#rv-ben-${pi} tbody tr`).forEach(tr=>{
+      const ins=tr.querySelectorAll('input');
+      const desc=(ins[0]||{}).value||'';const val=parseFloat((ins[1]||{}).value)||0;const note=(ins[2]||{}).value||'';
+      if(desc)corrected.benefits.push({desc,val,customDesc:note||null,on:val>0});
+    });
+    results.push(corrected);
+  });
+  return results;
+}
+
+function closeReview(){
+  document.getElementById('review-overlay').style.display='none';
+  _pendingParsed=[];
+}
+
+function confirmApply(){
+  const corrected=readReviewData();
+  document.getElementById('review-overlay').style.display='none';
+  corrected.forEach(p=>applyParsed(p));
+  const names=corrected.map(p=>p.promo.name||'未命名').join(', ');
+  document.getElementById('parsed-area').innerHTML=`<div class="parsed-banner"><span class="check">✓</span><span class="info">已套用: ${names}。請核對各欄位後計算。</span></div>`;
+  _pendingParsed=[];
+}
+
+function exportReviewXLSX(){
+  const data=_pendingParsed.length?readReviewData():[];
+  if(!data.length)return;
+  const wb=XLSX.utils.book_new();
+  data.forEach((p,idx)=>{
+    const name=(p.promo.name||`檔案${idx+1}`).substring(0,28);
+    const skuRows=[['產品名稱','單價 (HKD)','數量','估算總額']];
+    p.skus.forEach(s=>skuRows.push([s.name,s.price,s.qty||'⚠待填',s.qty?s.price*s.qty:'']));
+    const ws=XLSX.utils.aoa_to_sheet(skuRows);ws['!cols']=[{wch:40},{wch:14},{wch:10},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,ws,`${name}_SKU`);
+    if(p.focs.length){
+      const focRows=[['產品','數量','單價(HKD)']];
+      p.focs.forEach(f=>focRows.push([f.name,f.qty,f.price||'']));
+      const wf=XLSX.utils.aoa_to_sheet(focRows);wf['!cols']=[{wch:35},{wch:10},{wch:14}];
+      XLSX.utils.book_append_sheet(wb,wf,`${name}_FOC`);
+    }
+    if(p.incentives.length){
+      const incRows=[['產品範圍','$/瓶','上限(瓶)','上限($)']];
+      p.incentives.forEach(i=>incRows.push([i.name,i.perBtl,i.capBtl||'',i.capHkd||'']));
+      const wi=XLSX.utils.aoa_to_sheet(incRows);wi['!cols']=[{wch:40},{wch:10},{wch:12},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,wi,`${name}_激勵`);
+    }
+    if(p.benefits.length){
+      const benRows=[['說明','金額(HKD)','備註']];
+      p.benefits.forEach(b=>benRows.push([b.desc,b.val,b.customDesc||'']));
+      const wb2=XLSX.utils.aoa_to_sheet(benRows);wb2['!cols']=[{wch:30},{wch:14},{wch:50}];
+      XLSX.utils.book_append_sheet(wb,wb2,`${name}_利益`);
+    }
+  });
+  const date=new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb,`AGASIGHT_解析審閱_${date}.xlsx`);
+}
+
+function parseXLSX(wb,fname){
+  const log=[];
+  log.push(`== ${fname} ==`);
+  const result={skus:[],focs:[],incentives:[],trades:[],benefits:[],promo:{},log:''};
+  result.promo.name=fname.replace(/\.(xlsx?|xls)$/i,'').substring(0,60);
+
+  wb.SheetNames.forEach(sheetName=>{
+    const ws=wb.Sheets[sheetName];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    log.push(`工作表: ${sheetName} (${rows.length} 行)`);
+    const flat=rows.map(r=>r.join(' ')).join(' ');
+
+    // Generic supplier detection
+    if(!result.promo.supplier){
+      if(flat.match(/MHD|Moët|Diageo/i))result.promo.supplier='MHD Hong Kong';
+      else if(flat.match(/Pernod|Ricard/i))result.promo.supplier='Pernod Ricard HK';
+      else if(flat.match(/Campari/i))result.promo.supplier='Campari Group';
+      else if(flat.match(/Bacardi/i))result.promo.supplier='Bacardi';
+      else if(flat.match(/LVMH|Moët Hennessy/i))result.promo.supplier='LVMH Wine & Spirits';
+    }
+
+    // Detect promotion period
+    const periodM=flat.match(/(?:Promotion|Promo|Period|推廣期)[:\s]+([A-Za-z\d\s\-–,年月]+(?:20\d{2}))/i);
+    if(periodM&&!result.promo.period)result.promo.period=periodM[1].trim().substring(0,50);
+
+    // Find header row with product/price/qty columns
+    let hdrIdx=-1,cName=-1,cPrice=-1,cQty=-1;
+    rows.forEach((row,i)=>{
+      const low=row.map(c=>String(c).toLowerCase());
+      const hasProduct=low.some(c=>/(product|sku|item|品名|產品|description)/i.test(c));
+      const hasPrice=low.some(c=>/(price|invoice|unit|單價|價格|售價)/i.test(c));
+      if(hasProduct&&hasPrice&&hdrIdx<0){
+        hdrIdx=i;
+        low.forEach((c,j)=>{
+          if(/(product|sku|item|品名|產品|description)/i.test(c)&&cName<0)cName=j;
+          if(/(invoice|unit price|price|單價|售價)/i.test(c)&&cPrice<0)cPrice=j;
+          if(/(qty|quantity|cases|數量|箱數)/i.test(c)&&cQty<0)cQty=j;
+        });
+      }
+    });
+
+    if(hdrIdx>=0&&cName>=0&&cPrice>=0){
+      log.push(`  欄位: 產品[${cName}] 價格[${cPrice}] 數量[${cQty}]`);
+      for(let i=hdrIdx+1;i<rows.length;i++){
+        const row=rows[i];
+        const name=String(row[cName]||'').trim();
+        const price=parseFloat(String(row[cPrice]||'').replace(/[$,\s]/g,''))||0;
+        const qty=cQty>=0?(parseFloat(String(row[cQty]||'').replace(/[,\s]/g,''))||0):0;
+        if(name.length>2&&price>0&&!name.match(/^(total|sub|grand|合計|小計|總計)/i)){
+          result.skus.push({name,price,qty:qty||1});
+          log.push(`  SKU: ${name} @ $${price}${qty?' × '+qty:''}`);
+        }
+      }
+    }else{
+      // Fallback: scan rows for (text, number, number) pattern
+      log.push('  未偵測到標題列，嘗試自動掃描…');
+      rows.forEach((row,i)=>{
+        if(i===0)return;
+        const name=String(row[0]||'').trim();
+        const nums=row.slice(1).map(c=>parseFloat(String(c).replace(/[$,]/g,''))).filter(n=>n>0&&isFinite(n)&&n<1000000);
+        if(name.length>3&&nums.length>=1&&nums[0]>5&&!name.match(/^(total|sub|grand|合計|小計|總計)/i)){
+          result.skus.push({name,price:nums[0],qty:nums[1]||1});
+          log.push(`  SKU(推測): ${name} @ $${nums[0]}${nums[1]?' × '+nums[1]:''}`);
+        }
+      });
+    }
+  });
+
+  log.push(`  解析完: ${result.skus.length} SKU`);
+  result.log=log.join('\n');
+  return result;
+}
+
+// ── Proper MIME email text extractor ──
+function decodeQP(s){
+  return s.replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+}
+function htmlToLines(h){
+  try{
+    // Use browser's real HTML parser — handles malformed HTML, quotes inside attributes, etc.
+    const doc=new DOMParser().parseFromString(h,'text/html');
+    // Insert newlines before block-level elements
+    doc.querySelectorAll('br,p,div,li,tr,h1,h2,h3,h4,h5,h6,blockquote').forEach(el=>{
+      el.insertAdjacentText('beforebegin','\n');
+    });
+    // Tab-separate table cells
+    doc.querySelectorAll('td,th').forEach(el=>{
+      el.insertAdjacentText('afterend','\t');
+    });
+    const txt=(doc.body.innerText||doc.body.textContent||'')
+      .replace(/[ \t]{2,}/g,' ')
+      .replace(/\n[ \t]*/g,'\n')
+      .replace(/\n{3,}/g,'\n\n')
+      .trim();
+    return txt;
+  }catch(e){
+    // Fallback: strip tags with regex
+    return h.replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]*>/g,' ')
+      .replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/\s+/g,' ').trim();
+  }
+}
+function extractEmlText(raw){
+  // Find MIME boundary
+  const bM=raw.match(/boundary=(?:"([^"]+)"|(\S+))/i);
+  if(bM){
+    const boundary=(bM[1]||bM[2]).replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&');
+    const sections=raw.split(new RegExp('--'+boundary,'g'));
+    let plainText='',htmlText='';
+    for(const sec of sections){
+      const ctM=sec.match(/Content-Type:\s*(text\/(?:plain|html))/i);if(!ctM)continue;
+      const isHtml=/html/i.test(ctM[1]);
+      const enc=(sec.match(/Content-Transfer-Encoding:\s*(\S+)/i)||[])[1]||'';
+      const bodyM=sec.match(/(?:\r?\n){2}([\s\S]*)/);if(!bodyM)continue;
+      let body=bodyM[1].replace(/\r\n/g,'\n').trim();
+      if(/base64/i.test(enc)){try{body=atob(body.replace(/\s/g,''));}catch(e){continue;}}
+      else if(/quoted-printable/i.test(enc)){body=decodeQP(body);}
+      if(isHtml&&!htmlText)htmlText=htmlToLines(body);
+      else if(!isHtml&&!plainText)plainText=body;
+    }
+    // Prefer plain text (cleanest for regex), fall back to HTML-converted
+    if(plainText)return plainText;
+    if(htmlText)return htmlText;
+  }
+  // No MIME boundary — try single base64 block
+  const b64M=raw.match(/Content-Transfer-Encoding:\s*base64\s*[\r\n]+([\s\S]+?)(?=\n--|$)/i);
+  if(b64M){try{const t=atob(b64M[1].replace(/\s/g,''));return/<html/i.test(t)?htmlToLines(t):t;}catch(e){}}
+  // Raw text fallback
+  return /<html/i.test(raw)?htmlToLines(raw):raw;
+}
+
+function parseEml(raw,fname){
+  const log=[];
+  log.push(`== ${fname} ==`);
+  const text=extractEmlText(raw);
+  log.push(`  [文字提取: ${text.substring(0,60).replace(/\n/g,' ')}…]`);
+  const clean=text.replace(/\s+/g,' ');
+  const result={skus:[],focs:[],incentives:[],trades:[],benefits:[],promo:{},log:''};
+
+  const subj=(raw.match(/Subject:\s*(.+)/i)||[])[1]||'';
+  log.push(`主題: ${subj.substring(0,80)}`);
+
+  const periodM=clean.match(/Promotion Period[:\s]*([A-Za-z0-9\s\-–,]+(?:20\d{2})?\s*[-–]\s*[A-Za-z0-9\s\-–,]+(?:20\d{2})?)/i);
+  if(periodM)result.promo.period=periodM[1].trim();
+
+  const pkgM=clean.match(/Total (?:Package )?Value[\s:$]*\$?\s*([\d,]+)/i);
+  if(pkgM)result.promo.target=pkgM[1].replace(/,/g,'');
+
+  const targetM=clean.match(/total (?:amount )?of \$?([\d,]+) must be achieved/i);
+  if(targetM)result.promo.target=targetM[1].replace(/,/g,'');
+
+  // Generic supplier detection from content
+  if(!result.promo.supplier){
+    if(clean.match(/MHD|Moët\s*Hennessy|Diageo/i))result.promo.supplier='MHD Hong Kong';
+    else if(clean.match(/Pernod\s*Ricard/i))result.promo.supplier='Pernod Ricard HK';
+    else if(clean.match(/Campari/i))result.promo.supplier='Campari Group';
+    else if(clean.match(/Bacardi/i))result.promo.supplier='Bacardi';
+    else if(clean.match(/Beam\s*Suntory/i))result.promo.supplier='Beam Suntory';
+    else if(clean.match(/William\s*Grant/i))result.promo.supplier='William Grant & Sons';
+    else if(clean.match(/Remy\s*Cointreau|Rémy/i))result.promo.supplier='Rémy Cointreau';
+    // Fallback: extract "From:" header
+    else{const fromM=(raw.match(/From:.*?([A-Za-z].+?)(?:<|\n)/)||[]);if(fromM[1])result.promo.supplier=fromM[1].trim().substring(0,40);}
+  }
+  result.promo.name=subj.replace(/^(RE:|FW:|Fwd:|\[UPDATED\]|<UPDATED>)\s*/gi,'').trim().substring(0,60);
+
+  // If extracted text still contains HTML markup (Word-generated plain-text part),
+  // run it through DOMParser to get clean text
+  const _htmlTagRe=/<(?:p|div|span|td|tr|table|html|body|head|style|font|br|li|ul|ol)[^>]*>/i;
+  const rawLines=_htmlTagRe.test(text.substring(0,500))?htmlToLines(text):text;
+
+  // ── SKU parsing — try formats in order, fall back gracefully ──
+  let m;
+  const SKIP_SKU=/^(Product|SKU|Unit Price|Invoice Price|Revenue|Total|Sub.?total|Grand|Support|Display|Terms|Promotion|Package|JW Total|Diageo Total|Johnnie Walker$|Diageo$)/i;
+
+  // Format A: Name  $Price  Qty  $Total  (full table with qty column)
+  // Run on entire rawLines so we never miss due to bad section boundary
+  const skuPatA=/^[ \t]*([A-Z][A-Za-z\s\d.&'()\[\]\/{}*–\-]{3,60}?)\s+\$\s*([\d,.]+)\s+(\d{1,5})\s+\$\s*([\d,.]+)/gm;
+  while((m=skuPatA.exec(rawLines))!==null){
+    const name=m[1].trim().replace(/\s+/g,' ');
+    const price=parseFloat(m[2].replace(/,/g,''));
+    const qty=parseInt(m[3]);
+    const total=parseFloat(m[4].replace(/,/g,''));
+    if(SKIP_SKU.test(name))continue;
+    // Sanity: price × qty should be roughly equal to total (within 5%)
+    if(price>0&&qty>0&&Math.abs(price*qty-total)/(total||1)<0.05){
+      // Dedup: skip if same name+price already captured (HTML emails parse both parts)
+      if(!result.skus.some(s=>s.name===name&&s.price===price)){
+        result.skus.push({name,price,qty});
+        log.push(`  SKU: ${name} @ $${price} × ${qty}`);
+      }
+    }
+  }
+
+  // Format B: Name \t $Price  (price-only table, no qty column)
+  if(result.skus.length===0){
+    log.push('  未找到數量欄位，以單價模式解析（數量請手動填入）');
+    // Restrict to SKU table area: stop before Package Rebate / Staff Incentive
+    const cutoff=rawLines.search(/Package Rebate|Staff Incentive|\*.*must be achieved/i);
+    const skuArea=cutoff>0?rawLines.substring(0,cutoff):rawLines;
+    // Tab-separated: Name \t $Price
+    const skuPatB=/^[ \t]*([A-Z][A-Za-z\s\d.&'()\[\]\/{}*–\-]{3,60}?)[ \t]+\$\s*([\d,.]+)\s*[\r\n]/gm;
+    while((m=skuPatB.exec(skuArea))!==null){
+      const name=m[1].trim().replace(/\s+/g,' ');
+      const price=parseFloat(m[2].replace(/,/g,''));
+      if(SKIP_SKU.test(name))continue;
+      if(price>0&&price<200000){
+        result.skus.push({name,price,qty:0});
+        log.push(`  SKU: ${name} @ $${price} (數量待填)`);
+      }
+    }
+  }
+
+  // ── FOC / GWP free items ──
+  function _addFoc(name,qty){
+    name=name.trim().replace(/\s+/g,' ');
+    if(!qty||qty<=0||name.length<3)return;
+    if(name.match(/^(FOC|Free|Mechanics|Purchase|Bottles|Gift\s*Sets?|Glasses|Poker|Highball\s*Gift)/i))return;
+    const keywords=name.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+    const matchSku=result.skus.find(s=>keywords.some(k=>s.name.toLowerCase().includes(k)));
+    // Avoid adding duplicates
+    if(result.focs.some(f=>f.name===name&&f.qty===qty))return;
+    result.focs.push({name,qty,price:matchSku?matchSku.price:0});
+    log.push(`  FOC/GWP: ${name} × ${qty}${matchSku?' @ $'+matchSku.price:' (價格未找到，請手動輸入)'}`);
+  }
+  // Free bottles section — find heading then grab all sub-items after it
+  const freeSectionM=rawLines.match(/(?:Free\s+bottles?|FOC\s*Bottles?)\s*:?([\s\S]{0,600}?)(?=\n\s*\d+[\.\)]\s*[A-Z]|\n\s*(?:Display|GWP|Trade|Staff|Terms)|$)/i);
+  if(freeSectionM){
+    // "o\tSingleton 12YO: 36" or "- Singleton 12YO: 36" or "• Name x 36"
+    const subPat=/(?:^|[\r\n])[ \t]*(?:[-•o])[ \t]+([A-Za-z][^\r\n:]{2,60}?)(?:[ \t]*:[ \t]*|[ \t]+x[ \t]+)(\d+)/gi;
+    while((m=subPat.exec(freeSectionM[0]))!==null)_addFoc(m[1],parseInt(m[2]));
+  }
+  // Format 1: bullet "- Name x N bottles" inside a FOC section
+  const focBlock=rawLines.match(/(?:\d+\.\s*)?FOC\s*Bottles?[\s\S]{0,1500}?(?=\n[ \t]*\d+\.[ \t]|\n[ \t]*GWP|\n[ \t]*Display|\n[ \t]*In-store|\n[ \t]*Trade|Terms\s*&)/i);
+  if(focBlock){
+    const focLinePat=/^[ \t]*[-•][ \t]+([A-Za-z][^|\r\n]{3,60}?) x (\d+)\s*(?:bottles?|btls?|pcs?|sets?)?[ \t]*(?:\|.*)?$/gim;
+    while((m=focLinePat.exec(focBlock[0]))!==null)_addFoc(m[1],parseInt(m[2]));
+  }
+  // Format 2: "Name   N pcs" or "Name   N bottles" — no bullet, tabs/spaces before qty
+  const gwpLinePat=/^[ \t]*([A-Z][A-Za-z\s\d.&'()\[\]\/{}*–\-]{3,60}?)[ \t]{2,}(\d+)\s+(?:pcs?|bottles?|btls?)[ \t]*$/gim;
+  while((m=gwpLinePat.exec(rawLines))!==null){
+    const name=m[1].trim();
+    const isGwp=/GWP/i.test(name);
+    const nearGwp=result.focs.length>0&&/GWP/i.test(result.focs[result.focs.length-1].name);
+    if(isGwp||nearGwp)_addFoc(name,parseInt(m[2]));
+  }
+  // Format 3: loose "- Name x N" anywhere in full text
+  const looseFocPat=/^[ \t]*[-•][ \t]+([A-Za-z][^|\r\n]{3,60}?) x (\d+)\s*(?:bottles?|btls?|pcs?|sets?)?[ \t]*$/gim;
+  while((m=looseFocPat.exec(rawLines))!==null){_addFoc(m[1],parseInt(m[2]));}
+  // Format 4: Consumer Dinner detection → benefit not FOC
+  const dinnerM=rawLines.match(/Consumer\s+Dinner[^\n]*?(?:for\s+(\d+)\s*pax)?/i);
+  if(dinnerM&&!result.benefits.some(b=>b.desc.includes('晚宴'))){
+    const pax=dinnerM[1]?`${dinnerM[1]} pax`:'';
+    result.benefits.push({desc:'消費者晚宴',val:0,customDesc:pax?`Consumer Dinner (${pax})`:'Consumer Dinner',on:false});
+    log.push(`  消費者晚宴${pax?' ('+pax+')':''}: 已偵測`);
+  }
+
+  // ── Staff Incentives ──
+  // Section boundary: stop at next numbered section OR common section headings (allow leading whitespace)
+  const incBlockM=rawLines.match(/(?:Staff\s+)?(?:Sales\s+)?Incentiv(?:e|es)\b[\s\S]{0,4000}?(?=\n[ \t]*\d+\.[ \t]|\n[ \t]*(?:FOC\b|GWP\b|Display\b|Trade\b|Terms\b|Package\s+Rebate)|$)/i);
+  // Fall back to full text so we never silently miss items
+  const incText=incBlockM?incBlockM[0]:rawLines;
+  const seenInc=new Set();
+  // Format 1: "- ProductName: $X per bottle"  (colon, en-dash, em-dash, or hyphen separator)
+  const incPat1=/[-•]\s*([^:\n$—–]{4,80}?)[\u003A\u2013\u2014-]\s*(?:HK)?\$(\d+)\s*per\s*(?:bottle|btl)\.?/gi;
+  // Format 2: "- ProductName   $X per bottle"  (space only before $, no separator char)
+  const incPat2=/[-•]\s*([A-Z][A-Za-z\s\d.&'()\[\]\/{}*–\-]{3,60}?)\s{2,}(?:HK)?\$(\d+)\s*per\s*(?:bottle|btl)\.?/gi;
+  // Format 3 (old): "$X/btl for ProductName (cap at Y bottles / $Z)"
+  const incPat3=/(?:HK)?\$(\d+)\s*\/\s*(?:btl|bottle)\.?\s+for\s+([A-Za-z][^(\n]{4,60}?)(?:\s*\(cap at ([\d,]+)\s*bottles?\s*\/?\s*\$?([\d,]+)?\))?/gi;
+  [[incPat1,false],[incPat2,false],[incPat3,true]].forEach(([pat,isOld])=>{
+    while((m=pat.exec(incText))!==null){
+      const name=(isOld?m[2]:m[1]).trim().replace(/\s+/g,' ');
+      const perBtl=parseInt(isOld?m[1]:m[2]);
+      const capBtl=isOld&&m[3]?parseInt(m[3].replace(/,/g,'')):0;
+      const capHkd=isOld&&m[4]?parseInt(m[4].replace(/,/g,'')):0;
+      const key=name.toLowerCase().substring(0,25);
+      if(perBtl>0&&name.length>2&&!seenInc.has(key)&&!name.match(/^(Staff|Incentive|Please|All|payment|Terms)/i)){
+        seenInc.add(key);
+        result.incentives.push({name,perBtl,capBtl,capHkd});
+        log.push(`  激勵: ${name} $${perBtl}/瓶${capBtl?' (上限 '+capBtl+'瓶)':''}`);
+      }
+    }
+  });
+
+  // ── Display Fees ──
+  const dispFees=[];const seenDispKey=new Set();
+  function _addDisp(desc,val){
+    desc=(desc||'').replace(/^\d+[\.\)\s]+/,'').trim();
+    const key=(desc+val).toLowerCase().replace(/\s/g,'');
+    if(seenDispKey.has(key)||val<500)return;
+    seenDispKey.add(key);dispFees.push({desc,val});
+    log.push(`  陳列費 — ${desc}: $${FI(val)}`);
+  }
+  // Search entire text — no line anchors — find any "Display Fee" followed by $amount
+  const dispRe=/([^\n$]{0,80}?Display\s*Fee[^\n$]*?)\$\s*([\d,]{3,})/gi;
+  while((m=dispRe.exec(rawLines))!==null)_addDisp(m[1],parseInt(m[2].replace(/,/g,'')));
+  // Also catch "(Display Fee)" format: "FTT (Display Fee)  33,825" — no $ sign
+  const dispRe2=/([A-Za-z][^\n(]{0,40})\(Display\s*Fee\)[^\d\n]{0,30}([\d,]{3,})/gi;
+  while((m=dispRe2.exec(rawLines))!==null)_addDisp(m[1],parseInt(m[2].replace(/,/g,'')));
+  if(dispFees.length>0){
+    const total=dispFees.reduce((s,f)=>s+f.val,0);
+    const breakdown=dispFees.map(f=>`${f.desc}: $${FI(f.val)}`).join(' + ');
+    result.benefits.push({desc:'陳列費',val:total,customDesc:breakdown,on:true});
+    log.push(`  陳列費合計: $${FI(total)}`);
+  }
+
+  // ── Package Rebate: multiple patterns ──
+  const rebPatterns=[
+    /entitled\s+to\s+receive\s+HK\$?([\d,]+)/i,
+    /receive\s+HK\$?([\d,]+)\s+upon/i,
+    /Package\s+Rebate[^.]*?HK\$?([\d,]+)/i,
+    /HK\$?([\d,]+)\s+upon\s+completion/i,
+  ];
+  for(const pat of rebPatterns){
+    const rebM=clean.match(pat);
+    if(rebM){
+      const val=parseInt(rebM[1].replace(/,/g,''));
+      if(val>0){result.benefits.push({desc:'套餐回佣',val,on:true});log.push(`  套餐回佣: $${FI(val)}`);break;}
+    }
+  }
+
+  // ── Travel voucher ──
+  const travM=clean.match(/travel\s+voucher[^.]*?\$?([\d,]+)/i);
+  if(travM){const val=parseInt(travM[1].replace(/,/g,''));result.benefits.push({desc:'旅遊券',val,on:false});log.push(`  旅遊券: $${FI(val)}`);}
+
+  // Consumer Dinner already handled above (with pax count)
+
+  // ── Trade Offers (buy X get Y) ──
+  const tradeSection=clean.match(/Trade Offer[\s\S]{0,1500}?(?=I hope|Please|Terms|$)/i);
+  if(tradeSection){
+    const tPat=/([A-Za-z\s\d.'()\/–-]{8,50}?)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)/g;
+    while((m=tPat.exec(tradeSection[0]))!==null){
+      const name=m[1].trim();const lp=parseFloat(m[2]);const buy=parseInt(m[3]);const free=parseInt(m[4]);
+      if(buy>0&&free>0&&lp>50){result.trades.push({name,lp,buy,free});log.push(`  買贈: ${name} 買${buy}送${free} @ $${lp}`);}
+    }
+  }
+
+  // ── Annual Rebate % ──
+  const annM=clean.match(/(\d+(?:\.\d+)?)\s*%\s*rebate/i);
+  if(annM)result.promo.annualRebatePct=parseFloat(annM[1]);
+
+  log.push(`  解析完: ${result.skus.length} SKU, ${result.focs.length} FOC, ${result.incentives.length} 激勵, ${result.benefits.length} 利益`);
+  result.log=log.join('\n');
+  return result;
+}
+
+function applyParsed(p){
+  if(p.promo.supplier)document.getElementById('p-supplier').value=p.promo.supplier;
+  if(p.promo.name)document.getElementById('p-name').value=p.promo.name;
+  if(p.promo.period)document.getElementById('p-period').value=p.promo.period;
+  if(p.promo.target)document.getElementById('p-target').value=p.promo.target;
+  p.skus.forEach(s=>addSku(s.name,s.price,s.qty));
+  p.focs.forEach(f=>addFoc(f.name,f.qty,f.price,f.type||'package'));
+  p.incentives.forEach(i=>addInc(i.name,i.perBtl,i.capBtl,i.capHkd));
+  p.trades.forEach(t=>addTrd(t.name,t.lp,t.buy,t.free));
+  p.benefits.forEach(b=>addBen(b.customDesc||b.desc,b.val,'__all__',b.on));
+  if(p.promo.annualRebatePct)document.getElementById('reb-pct').value=p.promo.annualRebatePct;
+}
+
+function showParsedBanner(logs,count){
+  document.getElementById('parsed-area').innerHTML=`
+    <div class="parsed-banner"><span class="check">✓</span><span class="info">成功解析 ${count} 個電郵檔案。請檢查下方資料並修正後計算。</span></div>
+    <div class="parsed-log">${logs.join('\n\n')}</div>`;
+}
+
+// ── SKU ──
+function addSku(name='',price='',qty=''){
+  skuN++;const id=skuN;const t=(parseFloat(price)||0)*(parseFloat(qty)||0);
+  const tr=document.createElement('tr');tr.id='s'+id;
+  tr.innerHTML=`<td><button class="rm" onclick="this.closest('tr').remove();rS();uSel();">×</button></td>
+    <td><input type="text" value="${name}" placeholder="例：JW Black Label 70cl" onchange="uSel()"></td>
+    <td class="r"><input type="number" value="${price}" placeholder="0" step="0.01" oninput="rS()"></td>
+    <td class="r"><input type="number" value="${qty}" placeholder="0" step="1" oninput="rS()"></td>
+    <td class="r rt">${t?F(t):'—'}</td>`;
+  document.getElementById('sku-body').appendChild(tr);rS();uSel();
+}
+function rS(){document.querySelectorAll('#sku-body tr').forEach(tr=>{const i=tr.querySelectorAll('input');const t=(parseFloat(i[1].value)||0)*(parseFloat(i[2].value)||0);tr.querySelector('.rt').textContent=t?F(t):'—';});badge('sku-count','sku-body');}
+
+// ── FOC ──
+function addFoc(name='',qty='',price='',type='package'){
+  focN++;const tr=document.createElement('tr');tr.id='f'+focN;
+  const v=(parseFloat(price)||0)*(parseFloat(qty)||0);
+  tr.innerHTML=`<td><button class="rm" onclick="this.closest('tr').remove();badge('foc-count','foc-body');">×</button></td>
+    <td><input type="text" value="${name}" placeholder="產品名稱"></td>
+    <td class="r"><input type="number" value="${qty}" placeholder="0" oninput="rF(this)"></td>
+    <td class="r"><input type="number" value="${price}" placeholder="0" step="0.01" oninput="rF(this)"></td>
+    <td class="r rt">${v?F(v):'—'}</td>
+    <td><select style="font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px 4px;width:100%;">
+      <option value="package"${type==='package'?' selected':''}>均攤</option>
+      <option value="sku"${type==='sku'?' selected':''}>專屬 SKU</option>
+    </select></td>`;
+  document.getElementById('foc-body').appendChild(tr);badge('foc-count','foc-body');
+}
+function rF(el){const tr=el.closest('tr');const i=tr.querySelectorAll('input[type="number"]');const v=(parseFloat(i[0].value)||0)*(parseFloat(i[1].value)||0);tr.querySelector('.rt').textContent=v?F(v):'—';}
+
+// ── Incentive ──
+function addInc(name='',pb='',cb='',ch=''){
+  incN++;const tr=document.createElement('tr');tr.id='i'+incN;
+  const p=parseFloat(pb)||0,b=parseFloat(cb)||Infinity,h=parseFloat(ch)||Infinity;let mx=Math.min(p*b,h);if(!isFinite(mx))mx=0;
+  tr.innerHTML=`<td><button class="rm" onclick="this.closest('tr').remove();badge('inc-count','inc-body');">×</button></td>
+    <td><input type="text" value="${name}" placeholder="產品名稱"></td>
+    <td class="r"><input type="number" value="${pb}" placeholder="0" oninput="rI(this)"></td>
+    <td class="r"><input type="number" value="${cb}" placeholder="—" oninput="rI(this)"></td>
+    <td class="r"><input type="number" value="${ch}" placeholder="—" oninput="rI(this)"></td>
+    <td class="r rt">${mx?F(mx):'—'}</td>`;
+  document.getElementById('inc-body').appendChild(tr);badge('inc-count','inc-body');
+}
+function rI(el){const tr=el.closest('tr');const i=tr.querySelectorAll('input[type="number"]');const p=parseFloat(i[0].value)||0,b=parseFloat(i[1].value)||Infinity,h=parseFloat(i[2].value)||Infinity;let mx=Math.min(p*b,h);if(!isFinite(mx))mx=0;tr.querySelector('.rt').textContent=mx?F(mx):'—';}
+
+// ── Trade ──
+function addTrd(name='',lp='',buy='',free=''){
+  trdN++;const tr=document.createElement('tr');tr.id='t'+trdN;
+  const b=parseFloat(buy)||0,f=parseFloat(free)||0,p=parseFloat(lp)||0;
+  const net=(b+f)>0?(p*b)/(b+f):0;const d=p>0?((p-net)/p)*100:0;
+  tr.innerHTML=`<td><button class="rm" onclick="this.closest('tr').remove();badge('trd-count','trd-body');">×</button></td>
+    <td><input type="text" value="${name}" placeholder="產品名稱"></td>
+    <td class="r"><input type="number" value="${lp}" placeholder="0" step="0.01" oninput="rT(this)"></td>
+    <td class="r"><input type="number" value="${buy}" placeholder="11" oninput="rT(this)"></td>
+    <td class="r"><input type="number" value="${free}" placeholder="1" oninput="rT(this)"></td>
+    <td class="r rt">${net?F(net):'—'}</td>
+    <td class="r" style="color:var(--green);">${d?P(d):'—'}</td>`;
+  document.getElementById('trd-body').appendChild(tr);badge('trd-count','trd-body');
+}
+function rT(el){const tr=el.closest('tr');const i=tr.querySelectorAll('input[type="number"]');const p=parseFloat(i[0].value)||0,b=parseFloat(i[1].value)||0,f=parseFloat(i[2].value)||0;const net=(b+f)>0?(p*b)/(b+f):0;const d=p>0?((p-net)/p)*100:0;tr.querySelectorAll('td')[5].querySelector('.rt').textContent=net?F(net):'—';tr.querySelectorAll('td')[6].textContent=d?P(d):'—';}
+
+// ── MULTI-SELECT BENEFITS ──
+function getSkuNames(){const n=[];document.querySelectorAll('#sku-body tr').forEach(tr=>{const v=tr.querySelector('input[type="text"]').value.trim();if(v)n.push(v);});return n;}
+
+function uSel(){
+  document.querySelectorAll('.msel').forEach(msel=>{
+    const selected=JSON.parse(msel.dataset.selected||'["__all__"]');
+    buildMselDrop(msel,selected);
+  });
+  badge('sku-count','sku-body');
+}
+
+function buildMselDrop(msel,selected){
+  const names=getSkuNames();
+  const drop=msel.querySelector('.msel-drop');
+  const trigger=msel.querySelector('.msel-trigger');
+  const isAll=selected.includes('__all__');
+  const isNone=selected.includes('__none__');
+
+  let html=`<div class="msel-opt all-opt" onclick="mselSetAll(this.closest('.msel'))"><input type="checkbox" ${isAll?'checked':''} onclick="event.stopPropagation();mselSetAll(this.closest('.msel'))"> 全部 SKU（按收入比例分配）</div>`;
+
+  // Show every SKU in the dropdown — no limit
+  names.forEach(n=>{
+    const esc=n.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const checked=!isAll&&!isNone&&selected.includes(n);
+    html+=`<div class="msel-opt" onclick="mselToggleSku(this.closest('.msel'),'${esc}')"><input type="checkbox" value="${n}" ${checked?'checked':''} onclick="event.stopPropagation();mselToggleSku(this.closest('.msel'),'${esc}')"> ${n}</div>`;
+  });
+
+  html+=`<div class="msel-opt none-opt" onclick="mselSetNone(this.closest('.msel'))"><input type="checkbox" ${isNone?'checked':''} onclick="event.stopPropagation();mselSetNone(this.closest('.msel'))"> 不歸屬任何 SKU（僅記錄）</div>`;
+  drop.innerHTML=html;
+
+  if(isAll)trigger.textContent='全部 SKU（按收入比例）';
+  else if(isNone)trigger.textContent='不歸屬任何 SKU';
+  else{
+    const sel=selected.filter(s=>s!=='__all__'&&s!=='__none__');
+    trigger.textContent=sel.length===0?'請選擇…':sel.length<=2?sel.join(', '):sel.length+' 個 SKU';
+  }
+  msel.dataset.selected=JSON.stringify(selected);
+}
+
+function mselSetAll(msel){msel.dataset.selected='["__all__"]';buildMselDrop(msel,['__all__']);}
+function mselSetNone(msel){msel.dataset.selected='["__none__"]';buildMselDrop(msel,['__none__']);}
+
+function mselToggleSku(msel,skuName){
+  let selected=JSON.parse(msel.dataset.selected||'["__all__"]');
+  // Clear special modes first
+  selected=selected.filter(s=>s!=='__all__'&&s!=='__none__');
+  if(selected.includes(skuName)){selected=selected.filter(s=>s!==skuName);}
+  else{selected.push(skuName);}
+  // If nothing left, revert to all
+  if(selected.length===0)selected=['__all__'];
+  msel.dataset.selected=JSON.stringify(selected);
+  buildMselDrop(msel,selected);
+}
+
+const BEN_PRESETS=[
+  '陳列費','套餐回佣','年度回佣','旅遊券','消費者晚宴','GWP 贈品','培訓支援','市場推廣基金','其他（自行輸入）'
+];
+
+const OTHER_OPT='其他（自行輸入）';
+
+function benTypeChange(sel){
+  const custom=sel.nextElementSibling;
+  custom.style.display=sel.value===OTHER_OPT?'block':'none';
+}
+
+function getBenDesc(row){
+  const sel=row.querySelector('.ben-desc-sel');
+  if(sel.value===OTHER_OPT)return row.querySelector('.ben-custom').value||'(未命名)';
+  return sel.value||'(未命名)';
+}
+
+function addBen(desc='',val='',allocTo='__all__',on=true){
+  benN++;const id=benN;
+  const selData=allocTo==='__all__'?'["__all__"]':allocTo==='__none__'?'["__none__"]':JSON.stringify([allocTo]);
+
+  // Determine if desc matches a preset or is custom
+  const isPreset=BEN_PRESETS.includes(desc)||desc==='';
+  const presetVal=isPreset&&desc?desc:'';
+  const customVal=(!isPreset&&desc)?desc:'';
+
+  const opts=BEN_PRESETS.map(p=>`<option value="${p}"${presetVal===p?' selected':''}>${p}</option>`).join('');
+  const row=document.createElement('div');row.className='ben-row';row.id='b'+id;
+  row.innerHTML=`
+    <div>
+      <select class="ben-desc-sel" onchange="benTypeChange(this)">
+        <option value="">— 選擇類型 —</option>
+        ${opts}
+      </select>
+      <input type="text" class="ben-custom" placeholder="自行輸入說明" value="${customVal}" style="${customVal||presetVal==='其他（自行輸入）'?'display:block':'display:none'}">
+    </div>
+    <div><input type="number" value="${val}" placeholder="0" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:5px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;"></div>
+    <div class="msel" data-selected='${selData}'>
+      <div class="msel-trigger" onclick="this.nextElementSibling.classList.toggle('open')">載入中...</div>
+      <div class="msel-drop"></div>
+    </div>
+    <div style="text-align:center;"><label class="toggle"><input type="checkbox" ${on?'checked':''}><span class="sl"></span></label></div>
+    <div><button class="rm" onclick="this.closest('.ben-row').remove();badge('ben-count','ben-list');">×</button></div>`;
+  document.getElementById('ben-list').appendChild(row);
+  // Set correct preset value after DOM insertion
+  if(customVal){row.querySelector('.ben-desc-sel').value=OTHER_OPT;row.querySelector('.ben-custom').style.display='block';}
+  else if(presetVal){row.querySelector('.ben-desc-sel').value=presetVal;}
+  const msel=row.querySelector('.msel');
+  buildMselDrop(msel,JSON.parse(selData));
+  badge('ben-count','ben-list');
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.msel')){document.querySelectorAll('.msel-drop.open').forEach(d=>d.classList.remove('open'));}
+});
+
+// ── CALCULATE ──
+function calculate(){
+  const skus=[];
+  document.querySelectorAll('#sku-body tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');const name=i[0].value.trim(),price=parseFloat(i[1].value)||0,qty=parseFloat(i[2].value)||0;
+    if(name&&price>0&&qty>0)skus.push({name,price,qty,revenue:price*qty,focDisc:0,incentDisc:0,benefitDisc:0});
+  });
+  if(!skus.length){alert('請至少新增一個有價格和數量的 SKU。');return;}
+  const totalRev=skus.reduce((s,r)=>s+r.revenue,0);
+
+  let packageFocPool=0;
+  document.querySelectorAll('#foc-body tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');const name=i[0].value.trim(),fq=parseFloat(i[1].value)||0,fp=parseFloat(i[2].value)||0;
+    const fv=fq*fp;if(fv<=0)return;
+    const focType=(tr.querySelector('select')||{}).value||'package';
+    if(focType==='sku'){
+      // SKU-specific: apply discount only to the matched SKU (keyword match with fallback)
+      const kws=name.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+      const m=skus.find(s=>s.name.toLowerCase()===name.toLowerCase())||skus.find(s=>kws.length&&kws.every(k=>s.name.toLowerCase().includes(k)))||skus.find(s=>kws.some(k=>s.name.toLowerCase().includes(k)));
+      if(m&&m.qty>0){m.focDisc+=fv/m.qty;}
+    }else{
+      // Package-level: pool together, spread proportionally after
+      packageFocPool+=fv;
+    }
+  });
+  // Spread package FOC pool across all SKUs proportional to spend
+  if(packageFocPool>0&&totalRev>0){
+    skus.forEach(s=>{s.focDisc+=(packageFocPool*(s.revenue/totalRev))/s.qty;});
+  }
+
+  document.querySelectorAll('#inc-body tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');const name=i[0].value.trim(),pb=parseFloat(i[1].value)||0,cb=parseFloat(i[2].value)||Infinity,ch=parseFloat(i[3].value)||Infinity;
+    if(pb<=0)return;
+    const incKws=name.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+    const m=skus.find(s=>s.name.toLowerCase()===name.toLowerCase())||skus.find(s=>incKws.length&&incKws.every(k=>s.name.toLowerCase().includes(k)))||skus.find(s=>incKws.some(k=>s.name.toLowerCase().includes(k)));
+    if(m&&m.qty>0){const eq=Math.min(m.qty,cb);let t=eq*pb;if(t>ch)t=ch;m.incentDisc+=t/m.qty;}
+  });
+
+  const benLog=[];
+  document.querySelectorAll('#ben-list .ben-row').forEach(row=>{
+    const desc=getBenDesc(row);
+    const val=parseFloat(row.querySelector('input[type="number"]').value)||0;
+    const on=row.querySelector('.toggle input[type="checkbox"]').checked;
+    if(val<=0){benLog.push(`○ ${desc}: 無金額`);return;}
+    if(!on){benLog.push(`○ ${desc}: $${FI(val)} — 未啟用`);return;}
+    const msel=row.querySelector('.msel');
+    const selected=JSON.parse(msel.dataset.selected||'["__all__"]');
+    const isAll=selected.includes('__all__');
+    const isNone=selected.includes('__none__');
+    if(isNone){
+      benLog.push(`◌ ${desc}: $${FI(val)} → 不歸屬任何 SKU（僅記錄）`);
+      return; // Not distributed to any SKU's net-net
+    }
+    if(isAll){
+      skus.forEach(s=>{s.benefitDisc+=(val*(s.revenue/totalRev))/s.qty;});
+      benLog.push(`✓ ${desc}: $${FI(val)} → 全部 ${skus.length} 個 SKU（按收入比例）`);
+    }else{
+      const matched=skus.filter(s=>selected.includes(s.name));
+      if(matched.length>0){
+        const matchedRev=matched.reduce((sum,s)=>sum+s.revenue,0);
+        matched.forEach(s=>{s.benefitDisc+=(val*(s.revenue/matchedRev))/s.qty;});
+        benLog.push(`✓ ${desc}: $${FI(val)} → ${matched.map(m=>m.name).join(', ')}`);
+      }else{benLog.push(`⚠ ${desc}: $${FI(val)} — 選擇的 SKU 未匹配任何訂購項目`);}
+    }
+  });
+
+  let totalPaid=0,totalBenefit=0;
+  const rows=skus.map(s=>{
+    const td=s.focDisc+s.incentDisc+s.benefitDisc;const nn=s.price-td;const dp=(td/s.price)*100;
+    totalPaid+=s.revenue;totalBenefit+=td*s.qty;
+    return{...s,totalDisc:td,netNet:nn,discPct:dp};
+  });
+  const overallDisc=totalPaid>0?(totalBenefit/totalPaid)*100:0;
+  const bestDisc=Math.max(...rows.map(r=>r.discPct));
+
+  document.getElementById('sum-cards').innerHTML=`
+    <div class="stat-card"><div class="label">訂單總額</div><div class="value">$${FI(totalPaid)}</div></div>
+    <div class="stat-card"><div class="label">利益總值</div><div class="value green">$${FI(totalBenefit)}</div></div>
+    <div class="stat-card"><div class="label">整體實際折扣</div><div class="value red">${P(overallDisc)}</div></div>
+    <div class="stat-card"><div class="label">最高 SKU 折扣</div><div class="value gold">${P(bestDisc)}</div></div>`;
+
+  let tbody='',tQ=0,tR=0,tF=0,tI=0,tB=0,tD=0;
+  rows.forEach(r=>{
+    tQ+=r.qty;tR+=r.revenue;tF+=r.focDisc*r.qty;tI+=r.incentDisc*r.qty;tB+=r.benefitDisc*r.qty;tD+=r.totalDisc*r.qty;
+    tbody+=`<tr><td>${r.name}</td><td>${F(r.price)}</td><td>${FI(r.qty)}</td>
+      <td>${r.focDisc>0?F(r.focDisc):'—'}</td><td>${r.incentDisc>0?F(r.incentDisc):'—'}</td><td>${r.benefitDisc>0?F(r.benefitDisc):'—'}</td>
+      <td style="font-weight:600;">${F(r.totalDisc)}</td><td><span class="pill ${r.discPct>=5?'pill-green':'pill-gold'}">${P(r.discPct)}</span></td>
+      <td style="font-weight:700;color:var(--accent);">${F(r.netNet)}</td></tr>`;
+  });
+  const avgNN=tR>0?(tR-tD)/tQ:0;
+  tbody+=`<tr class="total-row"><td>合計 / 加權平均</td><td>${F(tR/tQ)}</td><td>${FI(tQ)}</td>
+    <td>${tF>0?F(tF/tQ):'—'}</td><td>${tI>0?F(tI/tQ):'—'}</td><td>${tB>0?F(tB/tQ):'—'}</td>
+    <td>${F(tD/tQ)}</td><td><span class="pill pill-green">${P(overallDisc)}</span></td><td style="font-weight:700;color:var(--accent);">${F(avgNN)}</td></tr>`;
+  document.getElementById('res-body').innerHTML=tbody;
+  document.getElementById('res-label').textContent=`${gv('p-supplier')} — ${gv('p-name')} — ${gv('p-period')}`;
+  document.getElementById('res-sec').style.display='block';
+
+  if(benLog.length>0){
+    document.getElementById('ben-log').innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;">利益歸屬明細：</div><div style="font-size:11px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:8px 10px;font-family:'JetBrains Mono',monospace;line-height:1.8;">${benLog.join('<br>')}</div>`;
+  }else{document.getElementById('ben-log').innerHTML='';}
+
+  const trdRows=[];
+  document.querySelectorAll('#trd-body tr').forEach(tr=>{
+    const i=tr.querySelectorAll('input');const name=i[0].value.trim(),lp=parseFloat(i[1].value)||0,buy=parseFloat(i[2].value)||0,free=parseFloat(i[3].value)||0;
+    if(name&&lp>0&&buy>0){const net=(lp*buy)/(buy+free);const d=((lp-net)/lp)*100;trdRows.push({name,lp,buy,free,net,d});}
+  });
+  if(trdRows.length){
+    let ttb='';trdRows.forEach(r=>{ttb+=`<tr><td>${r.name}</td><td>${F(r.lp)}</td><td>${r.buy}</td><td>${r.free}</td><td style="font-weight:700;color:var(--accent);">${F(r.net)}</td><td><span class="pill pill-green">${P(r.d)}</span></td></tr>`;});
+    document.getElementById('trd-res-body').innerHTML=ttb;document.getElementById('trd-res').style.display='block';
+  }else{document.getElementById('trd-res').style.display='none';}
+
+  cReb();
+  lastRes={supplier:gv('p-supplier'),name:gv('p-name'),period:gv('p-period'),date:new Date().toISOString().split('T')[0],
+    rows:rows.map(r=>({name:r.name,price:r.price,netNet:r.netNet,discPct:r.discPct,qty:r.qty})),overallDisc,totalPaid,totalBenefit};
+  document.getElementById('res-sec').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function cReb(){const p=gn('reb-pct'),a=gn('reb-ach');document.getElementById('reb-val').textContent=(p>0&&a>0)?'$'+FI(a*p/100):'—';}
+
+// ── EXPORT XLSX ──
+function exportXLSX(){
+  if(!lastRes){alert('請先計算淨淨價。');return;}
+  const r=lastRes;
+  const wb=XLSX.utils.book_new();
+  const resData=[
+    ['AGASIGHT 亞太區 — 淨淨價分析報告'],
+    ['供應商',r.supplier,'推廣名稱',r.name],
+    ['推廣期',r.period,'匯出日期',r.date],
+    ['訂單總額','$'+FI(r.totalPaid),'利益總值','$'+FI(r.totalBenefit),'整體折扣',P(r.overallDisc)],
+    [],
+    ['產品','發票價/瓶','數量','折扣 %','總折扣/瓶','淨淨價/瓶'],
+  ];
+  r.rows.forEach(row=>{resData.push([row.name,row.price,row.qty,Math.round(row.discPct*10)/10+'%',Math.round((row.price-row.netNet)*100)/100,Math.round(row.netNet*100)/100]);});
+  const ws1=XLSX.utils.aoa_to_sheet(resData);
+  ws1['!cols']=[{wch:30},{wch:14},{wch:10},{wch:12},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws1,'淨淨價分析');
+
+  const h=getHist();
+  if(h.length){
+    const allSkus=new Map();
+    h.forEach(entry=>{(entry.rows||[]).forEach(row=>{if(!allSkus.has(row.name))allSkus.set(row.name,[]);allSkus.get(row.name).push({entryId:entry.id,netNet:row.netNet,discPct:row.discPct,price:row.price});});});
+    const histData=[['SKU 淨淨價歷史追蹤'],[]];
+    const headerRow=['產品'];
+    h.forEach(e=>{headerRow.push(e.name||e.period||'推廣');});
+    headerRow.push('變化');histData.push(headerRow);
+    allSkus.forEach((entries,skuName)=>{
+      const row=[skuName];let first=null,last=null;
+      h.forEach(promo=>{const e=entries.find(x=>x.entryId===promo.id);if(e){row.push(Math.round(e.netNet*100)/100);if(first===null)first=e.netNet;last=e.netNet;}else{row.push('');}});
+      row.push(first!==null&&last!==null?Math.round((last-first)*100)/100:'');histData.push(row);
+    });
+    const ws2=XLSX.utils.aoa_to_sheet(histData);
+    ws2['!cols']=[{wch:30},...h.map(()=>({wch:16})),{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws2,'歷史追蹤');
+  }
+  XLSX.writeFile(wb,`AGASIGHT_淨淨價_${r.name||'分析'}_${r.date}.xlsx`);
+}
+
+// ── HISTORY ──
+function getHist(){try{return JSON.parse(localStorage.getItem('ag_nn_hist')||'[]');}catch(e){return[];}}
+function setHist(h){localStorage.setItem('ag_nn_hist',JSON.stringify(h));}
+function saveHist(){
+  if(!lastRes){alert('請先計算淨淨價。');return;}
+  const h=getHist();h.push({id:Date.now(),savedAt:new Date().toISOString(),...lastRes});
+  setHist(h);renderHist();alert('✓ 已儲存至歷史紀錄！');
+}
+function delHist(id){if(!confirm('確認刪除？'))return;setHist(getHist().filter(e=>e.id!==id));renderHist();}
+function clearHist(){if(!confirm('確認清除所有歷史？'))return;setHist([]);renderHist();}
+
+function renderHist(){
+  const h=getHist();
+  document.getElementById('hist-ct').textContent=h.length+' 筆紀錄';
+  const area=document.getElementById('hist-content');
+  const chartArea=document.getElementById('hist-chart');
+  if(!h.length){area.innerHTML='<div class="empty-state">尚無歷史紀錄。計算後點擊「儲存至歷史紀錄」。</div>';chartArea.innerHTML='';return;}
+
+  const allSkus=new Map();
+  h.forEach(entry=>{(entry.rows||[]).forEach(r=>{if(!allSkus.has(r.name))allSkus.set(r.name,[]);allSkus.get(r.name).push({entryId:entry.id,netNet:r.netNet,price:r.price,discPct:r.discPct});});});
+  const promoLabels=h.map(e=>e.name||e.period||'推廣');
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-weight:600;font-size:12px;color:var(--text2);">各推廣比較</span>
+    <button class="btn" style="font-size:11px;color:var(--red-light);border-color:var(--red-light);padding:3px 8px;" onclick="clearHist()">清除全部</button></div>`;
+
+  html+=`<div style="overflow-x:auto;margin-bottom:16px;"><table class="htbl"><thead><tr>
+    <th style="text-align:left;">推廣</th><th>推廣期</th><th>總額</th><th>利益</th><th>折扣</th><th>日期</th><th></th></tr></thead><tbody>`;
+  h.forEach(e=>{
+    html+=`<tr><td style="font-weight:500;">${e.name||'—'}</td><td>${e.period||'—'}</td><td>$${FI(e.totalPaid||0)}</td>
+      <td style="color:var(--green);">$${FI(e.totalBenefit||0)}</td><td><span class="pill pill-green">${P(e.overallDisc||0)}</span></td>
+      <td style="color:var(--text3);">${e.date||'—'}</td><td><button class="del-hist" onclick="delHist(${e.id})">刪除</button></td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+
+  html+=`<div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;">SKU 淨淨價演變</div>`;
+  html+=`<div style="overflow-x:auto;"><table class="htbl"><thead><tr><th style="text-align:left;">產品</th>`;
+  promoLabels.forEach(l=>{html+=`<th>${l}</th>`;});
+  if(promoLabels.length>1)html+=`<th>趨勢</th>`;
+  html+=`</tr></thead><tbody>`;
+
+  allSkus.forEach((entries,skuName)=>{
+    html+=`<tr><td>${skuName}</td>`;
+    const pMap=new Map();entries.forEach(e=>{pMap.set(e.entryId,e);});
+    let prev=null,first=null,last=null;
+    h.forEach(promo=>{
+      const e=pMap.get(promo.id);
+      if(e){
+        let cls='';if(prev!==null){cls=e.netNet<prev?'trend-down':e.netNet>prev?'trend-up':'';}
+        html+=`<td class="${cls}">$${F(e.netNet)}<br><span style="font-size:9px;color:var(--text3);">${P(e.discPct)}</span></td>`;
+        if(first===null)first=e.netNet;last=e.netNet;prev=e.netNet;
+      }else{html+=`<td style="color:var(--text3);">—</td>`;}
+    });
+    if(promoLabels.length>1&&first!==null&&last!==null){
+      const ch=last-first;const cp=first>0?(ch/first)*100:0;
+      const cls=ch<0?'trend-down':ch>0?'trend-up':'';
+      const arr=ch<0?'▼':ch>0?'▲':'▬';
+      html+=`<td class="${cls}" style="font-weight:600;">${arr} $${F(Math.abs(ch))}<br><span style="font-size:9px;">${ch<0?'':'+'}${cp.toFixed(1)}%</span></td>`;
+    }
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  area.innerHTML=html;
+
+  if(h.length>=2&&typeof Chart!=='undefined'){
+    chartArea.innerHTML='<div class="chart-container"><canvas id="hc"></canvas></div>';
+    const ctx=document.getElementById('hc').getContext('2d');
+    const colors=['#A32D2D','#2563EB','#2D7A3A','#96722D','#7C3AED','#DB2777','#0891B2','#EA580C','#4F46E5','#059669'];
+    const ds=[];let ci=0;
+    allSkus.forEach((entries,skuName)=>{
+      const data=h.map(p=>{const e=entries.find(x=>x.entryId===p.id);return e?Math.round(e.netNet*100)/100:null;});
+      ds.push({label:skuName,data,borderColor:colors[ci%colors.length],backgroundColor:colors[ci%colors.length]+'22',tension:0.3,spanGaps:true,pointRadius:4,pointHoverRadius:6,borderWidth:2});ci++;
+    });
+    if(hChart)hChart.destroy();
+    hChart=new Chart(ctx,{type:'line',data:{labels:promoLabels,datasets:ds},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{font:{family:'Noto Sans TC',size:11},boxWidth:12,padding:14}},tooltip:{callbacks:{label:c=>c.dataset.label+': $'+F(c.parsed.y)}}},
+        scales:{y:{beginAtZero:false,ticks:{font:{family:'JetBrains Mono',size:10},callback:v=>'$'+FI(v)},grid:{color:'#E5E3DC88'}},x:{ticks:{font:{family:'Noto Sans TC',size:10}},grid:{display:false}}},
+        interaction:{mode:'index',intersect:false}}
+    });
+  }else{chartArea.innerHTML='';}
+}
+
+// ── CLEAR ──
+function clearAll(){
+  ['sku-body','foc-body','inc-body','trd-body'].forEach(id=>document.getElementById(id).innerHTML='');
+  document.getElementById('ben-list').innerHTML='';
+  document.getElementById('res-sec').style.display='none';
+  document.getElementById('trd-res').style.display='none';
+  document.getElementById('parsed-area').innerHTML='';
+  ['p-supplier','p-name','p-period','p-target','reb-pct','reb-tgt','reb-ach'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('reb-val').textContent='—';
+  skuN=0;focN=0;incN=0;trdN=0;benN=0;lastRes=null;
+  ['sku-count','foc-count','inc-count','trd-count','ben-count'].forEach(id=>document.getElementById(id).textContent='0');
+}
+
+// ── DEMO ──
+function loadDemo(){
+  clearAll();
+  document.getElementById('p-supplier').value='MHD Hong Kong (Diageo)';
+  document.getElementById('p-name').value='Diageo CNY 2026';
+  document.getElementById('p-period').value='2025年12月 – 2026年3月';
+  document.getElementById('p-target').value='900000';
+  addSku('JW Black Label 70cl',210,1200);addSku('JW Blue Label 70cl',1125,360);addSku('JW Blue Label Horse',1285,60);
+  addSku('JW XR21',825,36);addSku('JW XR23',960,24);addSku('Singleton 12YO',275,180);addSku('Singleton 13YO',370,120);addSku('Singleton 15YO',545,60);
+  addFoc('JW Blue 20cl',120,321);addFoc('Singleton 12YO',36,275);addFoc('Singleton 13YO',24,370);addFoc('Singleton 15YO',12,545);
+  addInc('JW Blue Label 70cl',100,360,36000);addInc('JW Blue Label Horse',100,60,6000);addInc('JW XR21',50,36,1800);addInc('JW XR23',50,24,1200);
+  addInc('JW Black Label 70cl',15,1200,18000);addInc('Singleton 12YO',50,180,9000);addInc('Singleton 13YO',50,120,6000);
+  addTrd('Talisker 10yr 70cl',415,11,1);addTrd('Talisker 18YO 70cl',1390,11,1);addTrd('Glenkinchie 12YO 70cl',420,11,1);
+  addTrd('Caol Ila 12YO 70cl',380,11,1);addTrd('Oban 14YO 70cl',475,11,1);addTrd('Lagavulin 16YO 70cl',725,11,1);addTrd('Cragganmore 12YO 70cl',380,11,1);
+  addBen('陳列費',13200,'__all__',true);
+  document.getElementById('reb-pct').value=1;document.getElementById('reb-tgt').value=12000000;document.getElementById('reb-ach').value=12000098;
+  setTimeout(()=>calculate(),100);
+}
+
+renderHist();
+</script>
+</body>
+</html>
